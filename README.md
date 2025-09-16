@@ -12,3 +12,5 @@
 - Retail price (소매가격): R_some.R
 - Wholesale price (도매가격): R_dome.R
 - Sales volume (판매량): R_quant.R
+
+### The required data are provided in this repository (코드 실행에 필요한 모든 데이터는 이 레포지토리에서 제공되어있음)
