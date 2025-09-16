@@ -6,7 +6,7 @@
 
 ### Main code
 - English version: main_eng.do
-- Korean version (identical): main_kor.do
+- 한국어 버전: main_kor.do
 
 ### Seasonal Adjustment R Code (계절조정 R 코드)
 - Retail price (소매가격): R_some.R
