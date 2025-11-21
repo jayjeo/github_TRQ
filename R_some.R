@@ -1,5 +1,5 @@
 ## ===== R: Daily price seasonality removal (panel, keep 품목코드) =====
-dir_path <- "D:/JJ Dropbox/KCTDI_Research/할당관세 정책이 소비자 물가에 미치는 영향/농넷 자료 요청/요청데이터(도매,소매, 소비트렌드)"
+dir_path <- "D:/JJ Dropbox/KCTDI_Research/할당관세 정책이 소비자 물가에 미치는 영향/selected"
 in_path  <- file.path(dir_path, "q_all_daily.csv")
 out_path <- file.path(dir_path, "q_all_daily_STL_result.csv")
 hol_path <- file.path(dir_path, "kr_holidays_2021_2025.csv")  # date 열(YYYY-MM-DD)
