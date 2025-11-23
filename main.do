@@ -2102,9 +2102,6 @@ do LPseparateMAX_G파양m1
 
 
 
-
-
-
 //!======================================
 //!======================================
 //! Table generation for LP-DiD results
@@ -2116,12 +2113,12 @@ set matsize 11000, perm
 
 local expanatory_vars "shock i.date BaseTax i.qcode#c.oil_price i.qcode#c.temp_avg i.qcode#c.humidity_avg i.qcode#c.precipitation_daily i.qcode#c.sunshine_hours i.qcode#c.L365.temp_avg i.qcode#c.L365.humidity_avg i.qcode#c.L365.precipitation_daily i.qcode#c.L365.sunshine_hours, vce(cluster qcode)"
 
-use m1, clear
+use m4, clear
 xtset qcode date, daily
 
 gen byte d = 0
-replace d = 1 if inlist(q_item,"배추","양배추","무","양파","파인애플","당근") ///
-    | inlist(q_item,"체리","참다래","아보카도","망고","바나나")
+replace d = 1 if inlist(q_item,"배추","양배추","무","양파","당근") ///
+    | inlist(q_item,"체리","참다래","아보카도","망고","바나나","파인애플")
 replace TRQD=0 if d==0
 
 gen flag = date if L.TRQD==0 & TRQD==1 & F.TRQD==1
@@ -2190,7 +2187,7 @@ clear
 set more off
 set matsize 11000, perm
 
-use m1, clear
+use m4, clear
 xtset qcode date, daily
 
 local h=200
@@ -2203,8 +2200,8 @@ program define _lp_common_prep
     args groupnum
     tsset qcode date, daily
 
-    local group1 `" "배추","양배추","무","양파","파인애플","당근" "'
-    local group2 `" "체리","참다래","아보카도","망고","바나나" "'
+    local group1 `" "배추","양배추","무","양파","당근" "'
+    local group2 `" "체리","참다래","아보카도","망고","바나나","파인애플" "'
 
     gen byte d = 0
     if "`groupnum'"=="1" {
