@@ -3,7 +3,6 @@
 
 cd "${path}"
 
-
 //!================================================================
 //! STATA 19
 ************************************************
@@ -18,8 +17,8 @@ xtset qcode date, daily
 
 * 처리그룹: 단일 그룹(d==1)
 gen byte d = 0
-replace d = 1 if inlist(q_item,"배추","양배추","무","양파","파인애플","당근") ///
-    | inlist(q_item,"체리","참다래","아보카도","망고","바나나")
+replace d = 1 if inlist(q_item,"배추","양배추","무","양파","당근") ///
+    | inlist(q_item,"체리","참다래","아보카도","망고","바나나","파인애플")
 replace TRQD=0 if d==0
 
 * 이벤트/상대시점(강도 계산용 참고지표)
@@ -172,7 +171,7 @@ twoway ///
     ytitle("Log 소매가격 반응 (할당관세적용시)") ///
     legend(order(2 "처치그룹") pos(6) ring(0)) ///
     yline(0) xline(-1)
-graph export LPoneMAX_noG.png, replace width(3000)
+graph export LPoneMAX_noG파양m1.png, replace width(3000)
 
 twoway ///
     (rarea ub lb h, color(navy%25)   lcolor(navy%60)) ///
@@ -182,6 +181,6 @@ twoway ///
     ytitle("Log Retail Price Response (under TRQ)") ///
     legend(order(2 "Treated Group") pos(6) ring(0)) ///
     yline(0) xline(-1)
-graph export LPoneMAX_noG_eng.png, replace width(3000)
+graph export LPoneMAX_noG파양m1_eng.png, replace width(3000)
 
 

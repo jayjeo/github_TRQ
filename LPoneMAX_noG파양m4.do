@@ -1,9 +1,6 @@
 
 
-
 cd "${path}"
-
-
 
 //!================================================================
 //! STATA 19
@@ -14,13 +11,13 @@ clear all
 set more off
 set matsize 11000, perm
 
-use m1, clear
+use m4, clear
 xtset qcode date, daily
 
 * 처리그룹: 단일 그룹(d==1)
 gen byte d = 0
-replace d = 1 if inlist(q_item,"배추","양배추","무","양파","파인애플","당근") ///
-    | inlist(q_item,"체리","참다래","아보카도","망고","바나나")
+replace d = 1 if inlist(q_item,"배추","양배추","무","양파","당근") ///
+    | inlist(q_item,"체리","참다래","아보카도","망고","바나나","파인애플")
 replace TRQD=0 if d==0
 
 * 이벤트/상대시점(강도 계산용 참고지표)
@@ -152,7 +149,7 @@ forvalues h = -`Hpre'/`Hpost' {
             post `post2' (`h') (`Nall') (`NT') (`Nc') (. ) (. ) (. )
         }
         else {
-            gen double shock = intensity*event0*(d==1)
+            gen double shock = event0*(d==1)
             quietly reg dY shock i.date BaseTax i.qcode#c.oil_price i.qcode#c.temp_avg i.qcode#c.humidity_avg i.qcode#c.precipitation_daily i.qcode#c.sunshine_hours i.qcode#c.L365.temp_avg i.qcode#c.L365.humidity_avg i.qcode#c.L365.precipitation_daily i.qcode#c.L365.sunshine_hours, vce(cluster qcode)   
             post `post2' (`h') (`Nall') (`NT') (`Nc') ///
                 (_b[shock]) (_b[shock]-1.959964*_se[shock]) (_b[shock]+1.959964*_se[shock])
@@ -170,20 +167,19 @@ twoway ///
     (line  LP h,   lwidth(medthick)  lcolor(navy)), ///
     xlabel(-`Hpre'(50)`Hpost') xscale(range(-`Hpre' `Hpost')) ///
     xtitle("h (상대시점, 일)") ///
-    ytitle("Log 소매가격 반응 (강도 1%p당)") ///
+    ytitle("Log 소매가격 반응 (할당관세적용시)") ///
     legend(order(2 "처치그룹") pos(6) ring(0)) ///
     yline(0) xline(-1)
-graph export LPoneMAX_G.png, replace width(3000)
-
+graph export LPoneMAX_noG파양m4.png, replace width(3000)
 
 twoway ///
     (rarea ub lb h, color(navy%25)   lcolor(navy%60)) ///
     (line  LP h,   lwidth(medthick)  lcolor(navy)), ///
     xlabel(-`Hpre'(50)`Hpost') xscale(range(-`Hpre' `Hpost')) ///
-    xtitle("h (Relative days)") ///
-    ytitle("Log Retail Price Response (per 1%p Intensity)") ///
+    xtitle("h (Relative Days)") ///
+    ytitle("Log Retail Price Response (under TRQ)") ///
     legend(order(2 "Treated Group") pos(6) ring(0)) ///
     yline(0) xline(-1)
-graph export LPoneMAX_G_eng.png, replace width(3000)
+graph export LPoneMAX_noG파양m4_eng.png, replace width(3000)
 
 

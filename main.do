@@ -2072,15 +2072,29 @@ save t3, replace
 
 
 //!================================
-//! LP-DID graphs
+//! LP-DID graphs (Baseline)
 ** one treated group; no intensity
-do LPoneMAX_noG
+do LPoneMAX_noG파양m4
 ** two treated groups; no intensity
-do LPseparateMAX_noG
+do LPseparateMAX_noG파양m4
 ** one treated group; intensity
-do LPoneMAX_G
+do LPoneMAX_G파양m4
 ** two treated groups; intensity
-do LPseparateMAX_G
+do LPseparateMAX_G파양m4
+//!================================
+
+
+
+//!================================
+//! LP-DID graphs (Robustness Check)
+** one treated group; no intensity
+do LPoneMAX_noG파양m1
+** two treated groups; no intensity
+do LPseparateMAX_noG파양m1
+** one treated group; intensity
+do LPoneMAX_G파양m1
+** two treated groups; intensity
+do LPseparateMAX_G파양m1
 //!================================
 
 

@@ -2,8 +2,6 @@
 
 cd "${path}"
 
-
-
 //!================================================================
 //! STATA 19
 ************************************************
@@ -18,7 +16,7 @@ capture which rangestat
 if _rc ssc install rangestat, replace
 
 * 데이터 로드
-use m1, clear
+use m4, clear
 xtset qcode date, daily
 
 * 공통 설정
@@ -41,8 +39,8 @@ program define _lp_common_prep
     args groupnum
     tsset qcode date, daily
 
-    local group1 `" "배추","양배추","무","양파","파인애플","당근" "'
-    local group2 `" "체리","참다래","아보카도","망고","바나나" "'
+    local group1 `" "배추","양배추","무","양파","당근" "'
+    local group2 `" "체리","참다래","아보카도","망고","바나나","파인애플" "'
 
     gen byte d = 0
     if "`groupnum'"=="1" {
@@ -313,7 +311,7 @@ twoway ///
     ytitle("Log 소매가격 반응 (강도 1%p당)") ///
     legend(order(3 "처치그룹1" 4 "처치그룹2") pos(6) ring(0)) ///
     yline(0) xline(-1)
-graph export LPseparateMAX_G.png, replace width(3000)
+graph export LPseparateMAX파양_Gm4.png, replace width(3000)
 
 twoway ///
     (rarea ub1 lb1 h, color(navy%25)   lcolor(navy%60)) ///
@@ -325,7 +323,7 @@ twoway ///
     ytitle("Log Retail Price Response (per 1%p Intensity)") ///
     legend(order(3 "Treated Group 1" 4 "Treated Group 2") pos(6) ring(0)) ///
     yline(0) xline(-1)
-graph export LPseparateMAX_G_eng.png, replace width(3000)
+graph export LPseparateMAX파양_Gm4_eng.png, replace width(3000)
 
 
 

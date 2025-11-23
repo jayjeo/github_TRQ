@@ -1,14 +1,11 @@
 
 
-
-
 cd "${path}"
-
 
 //!================================================================
 //! STATA 19
 ************************************************
-** LP‑DiD: 두 그룹 분리 추정 + No Intensity
+** LP‑DiD: 두 그룹 분리 추정 + Intensity
 ************************************************
 clear all
 set more off
@@ -42,8 +39,8 @@ program define _lp_common_prep
     args groupnum
     tsset qcode date, daily
 
-    local group1 `" "배추","양배추","무","양파","파인애플","당근" "'
-    local group2 `" "체리","참다래","아보카도","망고","바나나" "'
+    local group1 `" "배추","양배추","무","양파","당근" "'
+    local group2 `" "체리","참다래","아보카도","망고","바나나","파인애플" "'
 
     gen byte d = 0
     if "`groupnum'"=="1" {
@@ -193,7 +190,7 @@ forvalues h = -`Hpre'/`Hpost' {
         post `post1' (`h') (`Nall') (`NT') (`Nc') (. ) (. ) (. )
     }
     else {
-        gen double shock = `ev'*(d==1)
+        gen double shock = intensity*`ev'*(d==1)
         quietly reg `dY' shock i.date BaseTax i.qcode#c.oil_price i.qcode#c.temp_avg i.qcode#c.humidity_avg i.qcode#c.precipitation_daily i.qcode#c.sunshine_hours i.qcode#c.L365.temp_avg i.qcode#c.L365.humidity_avg i.qcode#c.L365.precipitation_daily i.qcode#c.L365.sunshine_hours, vce(cluster qcode)   
         post `post1' (`h') (`Nall') (`NT') (`Nc') ///
             (_b[shock]) (_b[shock]-1.959964*_se[shock]) (_b[shock]+1.959964*_se[shock])
@@ -285,7 +282,7 @@ forvalues h = -`Hpre'/`Hpost' {
         post `post2' (`h') (`Nall') (`NT') (`Nc') (. ) (. ) (. )
     }
     else {
-        gen double shock = `ev'*(d==1)
+        gen double shock = intensity*`ev'*(d==1)
         quietly reg `dY' shock i.date BaseTax i.qcode#c.oil_price i.qcode#c.temp_avg i.qcode#c.humidity_avg i.qcode#c.precipitation_daily i.qcode#c.sunshine_hours i.qcode#c.L365.temp_avg i.qcode#c.L365.humidity_avg i.qcode#c.L365.precipitation_daily i.qcode#c.L365.sunshine_hours, vce(cluster qcode)   
         post `post2' (`h') (`Nall') (`NT') (`Nc') ///
             (_b[shock]) (_b[shock]-1.959964*_se[shock]) (_b[shock]+1.959964*_se[shock])
@@ -311,10 +308,10 @@ twoway ///
     (line  LP2 h,   lpattern(shortdash) lwidth(medthick) lcolor(maroon)), ///
     xlabel(-`Hpre'(50)`Hpost') xscale(range(-`Hpre' `Hpost')) ///
     xtitle("h (상대시점, 일)") ///
-    ytitle("Log 소매가격 반응 (할당관세적용시)") ///
+    ytitle("Log 소매가격 반응 (강도 1%p당)") ///
     legend(order(3 "처치그룹1" 4 "처치그룹2") pos(6) ring(0)) ///
     yline(0) xline(-1)
-graph export LPseparateMAX_noG.png, replace width(3000)
+graph export LPseparateMAX파양_Gm1.png, replace width(3000)
 
 twoway ///
     (rarea ub1 lb1 h, color(navy%25)   lcolor(navy%60)) ///
@@ -323,10 +320,11 @@ twoway ///
     (line  LP2 h,   lpattern(shortdash) lwidth(medthick) lcolor(maroon)), ///
     xlabel(-`Hpre'(50)`Hpost') xscale(range(-`Hpre' `Hpost')) ///
     xtitle("h (Relative Days)") ///
-    ytitle("Log Retail Price Response (under TRQ)") ///
+    ytitle("Log Retail Price Response (per 1%p Intensity)") ///
     legend(order(3 "Treated Group 1" 4 "Treated Group 2") pos(6) ring(0)) ///
     yline(0) xline(-1)
-graph export LPseparateMAX_noG_eng.png, replace width(3000)
+graph export LPseparateMAX파양_Gm1_eng.png, replace width(3000)
+
 
 
 
