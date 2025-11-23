@@ -14,9 +14,9 @@
 
 
 display "`c(hostname)'"
-if "`c(hostname)'" == "DESKTOP-RGF569Q" global path "D:\JJ Dropbox\KCTDI_Research\할당관세 정책이 소비자 물가에 미치는 영향\GItPublish"
-if "`c(hostname)'" == "DESKTOP-RUG6PS0" global path "D:\JJ Dropbox\KCTDI_Research\할당관세 정책이 소비자 물가에 미치는 영향\GItPublish"
-if "`c(hostname)'" == "ubuzuz" global path "D:\JJ Dropbox\KCTDI_Research\할당관세 정책이 소비자 물가에 미치는 영향\GItPublish"
+if "`c(hostname)'" == "DESKTOP-RGF569Q" global path "D:\JJ Dropbox\KCTDI_Research\할당관세 정책이 소비자 물가에 미치는 영향\GItPublish_test"
+if "`c(hostname)'" == "DESKTOP-RUG6PS0" global path "D:\JJ Dropbox\KCTDI_Research\할당관세 정책이 소비자 물가에 미치는 영향\GItPublish_test"
+if "`c(hostname)'" == "ubuzuz" global path "D:\JJ Dropbox\KCTDI_Research\할당관세 정책이 소비자 물가에 미치는 영향\GItPublish_test"
 cd "${path}"
 adopath + "${path}"
 
@@ -501,7 +501,7 @@ gen ORD=CUP7     // 7 시작
  // replace ORD=CUP5 if CUP5!=.; 5 has priority over 6 and 7; skip case 5
  // replace ORD=CUP5 if CUP5!=.   // 5= 6,7보다 우선적용   // 5번 스킵
 // Generate ORD42 from ORD; start at 42 and always skip 42 because 42 itself indicates TRQ application
-//gen ORD42=ORD                 // 42 시작  //! 반드시 42 스킵해야됨. 42 자체가 할당관세 적용임
+//gen ORD42=ORD                 // 42 시작  // 반드시 42 스킵해야됨. 42 자체가 할당관세 적용임
 // replace ORD42=CUP42 if CUP42!=.; when 42 is lower than 5 give 42 priority; it also has priority over 6 and 7
 //replace ORD42=CUP42 if CUP42!=.   // 42= 5보다 낮은 경우 우선적용  / 6,7보다 우선적용
 gen ORD41=ORD                   //41 시작
@@ -529,7 +529,7 @@ foreach loc of newlist 그리스 네덜란드 노르웨이 뉴질랜드 니카�
     egen ORD2_`loc'=rowmin(FIMP_`loc' ORD31 ORD32 ORD33G)
 } 
 foreach loc of newlist 중국 인도네시아 {
-    egen ORD2_`loc'=rowmin(FIMP_`loc' ORD32 ORD33C)
+    egen ORD2_`loc'=rowmin(FIMP_`loc' ORD32)  // ORD33C 삭제
 } 
 foreach loc of newlist 방글라데시 {
     egen ORD2_`loc'=rowmin(ORD31 ORD32 ORD33C ORD33B)
@@ -1238,6 +1238,7 @@ save import_price_final, replace
 
 
 
+*****************************
 use fullpanel, clear 
 keep q_item date 
 gen TRQD=0
@@ -1509,14 +1510,16 @@ twoway (tsline s_price if q_item=="당근", lcolor(gs0) lwidth(thick)) ///
 
 
 
-use m1, clear 
-keep if q_item=="파인애플"
+use m3, clear 
+local f1 = mdy(1,1,2024)
+local f2 = mdy(7,3,2023)
+keep if q_item=="망고"
 keep if inrange(date,22281,23831)   // 2021-01-01 ~ 2025-03-31
 twoway (tsline s_price, lcolor(red) lwidth(thick)) ///
        (tsline d_price, lcolor(gs0) lwidth(thick) lpattern(dash)) ///
        (tsline i_price, lcolor(gs0)), ///
        yscale(range(0 .)) ylabel(0, add) ytitle("단위: 원/kg") xtitle("") /// 
-       legend(order(1 "소매가" 2 "도매가" 3 "수입가")) 
+       legend(order(1 "소매가" 2 "도매가" 3 "수입가")) xline(`f1') xline(`f2')
 graph export "수입-도매-소매가.png", replace width(3000)
 
 
@@ -1562,7 +1565,7 @@ restore
 * 3. 원래 데이터셋으로 돌아와서, 합계가 큰 순서대로 IMP_* 변수 순서를 재정렬
 order q_item time HS10 BaseTax `ord_imps'
 sort q_item time
-export excel using "BaseTaxRealFinal.xlsx", firstrow(variables) replace
+export excel using "BaseTaxRealFinal_publish.xlsx", firstrow(variables) replace
 
 
 
@@ -1962,7 +1965,10 @@ replace TRQD=1 if q_item=="파인애플"&inrange(date,mdy(11,10,2022),mdy(12,31,
 replace TRQD=1 if q_item=="망고"&inrange(date,mdy(11,10,2022),mdy(12,31,2022))  
 save m2, replace
 
+
+
 use m2, clear
+** 파인애플 전처리1 구간 미제거 (m3)
 gen treated=0
 replace treated=1 if inlist(q_item,"배추","양배추","당근","파인애플","무","양파")|inlist(q_item,"체리","참다래","아보카도","망고","바나나")
 gen TRQ=.
@@ -1970,6 +1976,20 @@ replace TRQ=0 if TRQD==1&treated==1
 replace TRQ=5 if TRQD==1&q_item=="참다래"
 replace TRQ=. if TRQD==1&treated==0
 save m3, replace 
+
+
+
+use m2, clear
+** 파인애플 전처리1 구간 제거 (m4)
+replace TRQD=0 if q_item=="파인애플"&inrange(date,mdy(11,10,2022),mdy(12,31,2022))  
+replace TRQD=0 if q_item=="파인애플"&inrange(date,mdy(8,25,2023),mdy(1,31,2024))  
+gen treated=0
+replace treated=1 if inlist(q_item,"배추","양배추","당근","파인애플","무","양파")|inlist(q_item,"체리","참다래","아보카도","망고","바나나")
+gen TRQ=.
+replace TRQ=0 if TRQD==1&treated==1
+replace TRQ=5 if TRQD==1&q_item=="참다래"
+replace TRQ=. if TRQD==1&treated==0
+save m4, replace 
 
 
 
@@ -2062,6 +2082,335 @@ do LPoneMAX_G
 ** two treated groups; intensity
 do LPseparateMAX_G
 //!================================
+
+
+
+
+
+
+
+
+
+//!======================================
+//!======================================
+//! Table generation for LP-DiD results
+//!======================================
+** one treated group
+clear all
+set more off
+set matsize 11000, perm
+
+local expanatory_vars "shock i.date BaseTax i.qcode#c.oil_price i.qcode#c.temp_avg i.qcode#c.humidity_avg i.qcode#c.precipitation_daily i.qcode#c.sunshine_hours i.qcode#c.L365.temp_avg i.qcode#c.L365.humidity_avg i.qcode#c.L365.precipitation_daily i.qcode#c.L365.sunshine_hours, vce(cluster qcode)"
+
+use m1, clear
+xtset qcode date, daily
+
+gen byte d = 0
+replace d = 1 if inlist(q_item,"배추","양배추","무","양파","파인애플","당근") ///
+    | inlist(q_item,"체리","참다래","아보카도","망고","바나나")
+replace TRQD=0 if d==0
+
+gen flag = date if L.TRQD==0 & TRQD==1 & F.TRQD==1
+by qcode: egen TRQstart = mean(flag)
+gen rtime = date - TRQstart
+
+gen total_import100_temp = total_import if d==1&inrange(rtime,-500,0)
+by qcode: egen double total_import100 = mean(total_import100_temp)
+replace total_import= total_import100 if d==1&rtime>=0
+by qcode: egen double total_import_mean = mean(total_import)
+gen import=total_import/total_import_mean
+
+replace s_price = ln(s_price)
+replace d_price = ln(d_price)
+replace i_price = ln(i_price)
+
+foreach var of varlist temp_avg humidity_avg precipitation_daily sunshine_hours {
+    rangestat (mean) `var', interval(date -100 0) by(qcode)
+    drop `var'
+    rename `var'_mean `var'
+}
+
+gen double TRQall_temp = TRQ if flag<. & d==1
+by qcode: egen double TRQall = mean(TRQall_temp)
+gen double intensity_temp = (BaseTax - TRQall) if d==1
+replace intensity_temp = 0 if intensity_temp < 0
+sort qcode rtime
+rangestat (mean) intensity_temp, interval(rtime -365 0) by(qcode)
+gen intensity_temp2 = intensity_temp_mean if flag<. & d==1
+by qcode: egen double intensity = mean(intensity_temp2)
+drop intensity_temp intensity_temp2
+replace intensity = 0 if missing(intensity)
+
+by qcode: egen byte ever_tr = max(TRQD)
+gen byte never_tr = (ever_tr==0)            // 전 기간 TRQD==0인 품목
+label var never_tr "Never treated across full sample"
+bysort qcode (date): gen long cum_tr = sum(TRQD)
+gen byte prev_treated = (L.cum_tr > 0)      // t 이전에 한 번이라도 TRQD==1
+replace prev_treated = 0 if missing(prev_treated)
+
+local h = 200
+tsset qcode date, daily
+gen byte event0 = (L.TRQD==0 & TRQD==1)
+gen double dY = F`h'.s_price - L.s_price
+gen double dX = F`h'.d_price - L.d_price
+quietly rangestat (max) TRQD, interval(date 1 `h') by(qcode)
+replace TRQD_max = 0 if missing(TRQD_max)
+local ctrlcond "prev_treated==0 & TRQD==0 & TRQD_max==0"
+keep if ((event0==1 & d==1) | (`ctrlcond'))
+drop if missing(dY)
+drop if missing(dX)
+
+eststo clear 
+gen double shock = event0*(d==1)
+eststo one_noG: qui reg dY `expanatory_vars'
+
+replace shock=.
+replace shock = intensity*event0*(d==1)
+eststo one_G: qui reg dY `expanatory_vars'
+
+
+
+//!===============================
+** two treated group
+clear
+set more off
+set matsize 11000, perm
+
+use m1, clear
+xtset qcode date, daily
+
+local h=200
+capture noisily postutil clear
+tempfile base
+save "`base'", replace
+
+capture program drop _lp_common_prep
+program define _lp_common_prep
+    args groupnum
+    tsset qcode date, daily
+
+    local group1 `" "배추","양배추","무","양파","파인애플","당근" "'
+    local group2 `" "체리","참다래","아보카도","망고","바나나" "'
+
+    gen byte d = 0
+    if "`groupnum'"=="1" {
+        * 처리그룹: 단일 그룹(d==1)
+        replace d = 1 if inlist(q_item,`group1')
+        drop if inlist(q_item,`group2')
+        replace TRQD=0 if d==0
+    }
+    else if "`groupnum'"=="2" {
+        * 처리그룹: 단일 그룹(d==1)
+        replace d = 1 if inlist(q_item,`group2')
+        drop if inlist(q_item,`group1')
+        replace TRQD=0 if d==0
+    }
+
+    * 이벤트/상대시점(강도 계산 참고지표)
+    gen flag = date if L.TRQD==0 & TRQD==1 & F.TRQD==1
+    by qcode: egen TRQstart = mean(flag)
+    gen rtime = date - TRQstart
+
+    * Import = total_import but constant if rtime>=0
+    gen total_import100_temp = total_import if d==1&inrange(rtime,-500,0)
+    by qcode: egen double total_import100 = mean(total_import100_temp)
+    replace total_import= total_import100 if d==1&rtime>=0
+	by qcode: egen double total_import_mean = mean(total_import)
+	gen import=total_import/total_import_mean
+
+    * 로그 변환
+    replace s_price = ln(s_price)
+    replace d_price = ln(d_price)
+    replace i_price = ln(i_price)
+
+    * 기후변수 rangestat 
+    foreach var of varlist temp_avg humidity_avg precipitation_daily sunshine_hours {
+        rangestat (mean) `var', interval(date -100 0) by(qcode)
+        drop `var'
+        rename `var'_mean `var'
+    }
+
+    * 이벤트 시 강도(처리그룹만)
+    gen double TRQall_temp = TRQ if flag<. & d==1
+    by qcode: egen double TRQall = mean(TRQall_temp)
+    gen double intensity_temp = (BaseTax - TRQall) if d==1
+    replace intensity_temp = 0 if intensity_temp < 0
+    sort qcode rtime
+    rangestat (mean) intensity_temp, interval(rtime -365 0) by(qcode)
+    gen intensity_temp2 = intensity_temp_mean if flag<. & d==1
+    by qcode: egen double intensity = mean(intensity_temp2)
+    drop intensity_temp intensity_temp2
+    replace intensity = 0 if missing(intensity)
+
+    ************************************************
+    * Clean control 판별을 위한 보조지표 (전 기간 기준)
+    ************************************************
+    * ever treated (전 기간 중 TRQD==1이 있었는지)
+    by qcode: egen byte ever_tr = max(TRQD)
+    gen byte never_tr = (ever_tr==0)            // 전 기간 TRQD==0인 품목
+    label var never_tr "Never treated across full sample"
+
+    * t 이전 처리 이력 여부(비흡수/반복 처리를 안전하게 배제)
+    bysort qcode (date): gen long cum_tr = sum(TRQD)
+    gen byte prev_treated = (L.cum_tr > 0)      // t 이전에 한 번이라도 TRQD==1
+    replace prev_treated = 0 if missing(prev_treated)
+end
+
+************************************************
+** Group 1
+************************************************
+use "`base'", clear
+quietly _lp_common_prep 1
+tsset qcode date, daily
+tempvar ev dY dX dI tmax
+gen byte `ev' = (L.TRQD==0 & TRQD==1)
+gen double `dY' = F`h'.s_price - L.s_price
+gen double `dX' = F`h'.d_price - L.d_price
+quietly rangestat (max) TRQD, interval(date 1 `h') by(qcode)
+rename TRQD_max `tmax'
+replace `tmax' = 0 if missing(`tmax')
+local ctrlcond "prev_treated==0 & TRQD==0 & `tmax'==0"
+keep if ((`ev'==1 & d==1) | (`ctrlcond'))
+drop if missing(`dY')
+drop if missing(`dX')
+
+gen double shock = `ev'*(d==1)
+eststo two_noG_group1: qui reg `dY' `expanatory_vars'
+
+replace shock=.
+replace shock = intensity*`ev'*(d==1)
+eststo two_G_group1: qui reg `dY' `expanatory_vars'
+
+
+
+************************************************
+** Group 2
+************************************************
+use "`base'", clear
+quietly _lp_common_prep 2
+tsset qcode date, daily
+tempvar ev dY dX dI tmax
+gen byte `ev' = (L.TRQD==0 & TRQD==1)
+gen double `dY' = F`h'.s_price - L.s_price
+gen double `dX' = F`h'.d_price - L.d_price
+quietly rangestat (max) TRQD, interval(date 1 `h') by(qcode)
+rename TRQD_max `tmax'
+replace `tmax' = 0 if missing(`tmax')
+local ctrlcond "prev_treated==0 & TRQD==0 & `tmax'==0"
+keep if ((`ev'==1 & d==1) | (`ctrlcond'))
+drop if missing(`dY')
+drop if missing(`dX')
+
+gen double shock = `ev'*(d==1)
+eststo two_noG_group2: qui reg `dY' `expanatory_vars'
+
+replace shock=.
+replace shock = intensity*`ev'*(d==1)
+eststo two_G_group2: qui reg `dY' `expanatory_vars'
+
+
+
+esttab one_noG two_noG_group1 two_noG_group2 one_G two_G_group1 two_G_group2 using "TRQ_table.tex", ///
+    title(\label{tab:TRQ_table}) ///
+    b(%9.5f) se(%9.5f) ///
+    lab se r2 pr2 noconstant replace ///
+    star(* 0.10 ** 0.05 *** 0.01) ///
+    mgroups("Without intensity" "With Intensity", pattern(1 0 0 1 0 0) ///
+    prefix(\multicolumn{@span}{c}{) suffix(}) ///
+    span erepeat(\cmidrule(lr){@span})) ///
+    addnotes("Evaluated at h=200 days")
+
+
+
+
+
+
+
+
+//!======================================
+//!======================================
+//! Checking within R2 using areg (Use STATA19)
+//!======================================
+** one treated group
+clear all
+set more off
+set matsize 11000, perm
+
+use m1, clear
+xtset qcode date, daily
+
+local expanatory_vars_date_removed "shock BaseTax i.qcode#c.oil_price i.qcode#c.temp_avg i.qcode#c.humidity_avg i.qcode#c.precipitation_daily i.qcode#c.sunshine_hours i.qcode#c.L365.temp_avg i.qcode#c.L365.humidity_avg i.qcode#c.L365.precipitation_daily i.qcode#c.L365.sunshine_hours"
+
+gen byte d = 0
+replace d = 1 if inlist(q_item,"배추","양배추","무","양파","파인애플","당근") ///
+    | inlist(q_item,"체리","참다래","아보카도","망고","바나나")
+replace TRQD=0 if d==0
+
+gen flag = date if L.TRQD==0 & TRQD==1 & F.TRQD==1
+by qcode: egen TRQstart = mean(flag)
+gen rtime = date - TRQstart
+
+gen total_import100_temp = total_import if d==1&inrange(rtime,-500,0)
+by qcode: egen double total_import100 = mean(total_import100_temp)
+replace total_import= total_import100 if d==1&rtime>=0
+by qcode: egen double total_import_mean = mean(total_import)
+gen import=total_import/total_import_mean
+
+replace s_price = ln(s_price)
+replace d_price = ln(d_price)
+replace i_price = ln(i_price)
+
+foreach var of varlist temp_avg humidity_avg precipitation_daily sunshine_hours {
+    rangestat (mean) `var', interval(date -100 0) by(qcode)
+    drop `var'
+    rename `var'_mean `var'
+}
+
+gen double TRQall_temp = TRQ if flag<. & d==1
+by qcode: egen double TRQall = mean(TRQall_temp)
+gen double intensity_temp = (BaseTax - TRQall) if d==1
+replace intensity_temp = 0 if intensity_temp < 0
+sort qcode rtime
+rangestat (mean) intensity_temp, interval(rtime -365 0) by(qcode)
+gen intensity_temp2 = intensity_temp_mean if flag<. & d==1
+by qcode: egen double intensity = mean(intensity_temp2)
+drop intensity_temp intensity_temp2
+replace intensity = 0 if missing(intensity)
+
+by qcode: egen byte ever_tr = max(TRQD)
+gen byte never_tr = (ever_tr==0)            // 전 기간 TRQD==0인 품목
+label var never_tr "Never treated across full sample"
+bysort qcode (date): gen long cum_tr = sum(TRQD)
+gen byte prev_treated = (L.cum_tr > 0)      // t 이전에 한 번이라도 TRQD==1
+replace prev_treated = 0 if missing(prev_treated)
+
+local h = 200
+tsset qcode date, daily
+gen byte event0 = (L.TRQD==0 & TRQD==1)
+gen double dY = F`h'.s_price - L.s_price
+gen double dX = F`h'.d_price - L.d_price
+quietly rangestat (max) TRQD, interval(date 1 `h') by(qcode)
+replace TRQD_max = 0 if missing(TRQD_max)
+local ctrlcond "prev_treated==0 & TRQD==0 & TRQD_max==0"
+keep if ((event0==1 & d==1) | (`ctrlcond'))
+drop if missing(dY)
+drop if missing(dX)
+
+egen date_id = group(date)
+xtset qcode date_id
+
+
+gen double shock = event0*(d==1)
+areg dY `expanatory_vars_date_removed', absorb(date_id) vce(cluster qcode)
+
+
+replace shock=.
+replace shock = intensity*event0*(d==1)
+areg dY `expanatory_vars_date_removed', absorb(date) vce(cluster qcode)
+
+
+
+
 
 
 
