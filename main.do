@@ -2072,7 +2072,7 @@ save t3, replace
 
 
 //!================================
-//! LP-DID graphs (Baseline)
+//! LP-DID graphs (Baseline), use STATA19
 ** one treated group; no intensity
 do LPoneMAX_noG파양m4
 ** two treated groups; no intensity
@@ -2086,7 +2086,7 @@ do LPseparateMAX_G파양m4
 
 
 //!================================
-//! LP-DID graphs (Robustness Check)
+//! LP-DID graphs (Robustness Check), use STATA19
 ** one treated group; no intensity
 do LPoneMAX_noG파양m1
 ** two treated groups; no intensity
@@ -2159,7 +2159,7 @@ bysort qcode (date): gen long cum_tr = sum(TRQD)
 gen byte prev_treated = (L.cum_tr > 0)      // t 이전에 한 번이라도 TRQD==1
 replace prev_treated = 0 if missing(prev_treated)
 
-local h = 200
+local h = 250
 tsset qcode date, daily
 gen byte event0 = (L.TRQD==0 & TRQD==1)
 gen double dY = F`h'.s_price - L.s_price
@@ -2174,11 +2174,12 @@ drop if missing(dX)
 eststo clear 
 gen double shock = event0*(d==1)
 eststo one_noG: qui reg dY `expanatory_vars'
+display "Adjusted R-squared: " e(r2_a)
 
 replace shock=.
 replace shock = intensity*event0*(d==1)
 eststo one_G: qui reg dY `expanatory_vars'
-
+display "Adjusted R-squared: " e(r2_a)
 
 
 //!===============================
@@ -2187,10 +2188,12 @@ clear
 set more off
 set matsize 11000, perm
 
+local expanatory_vars "shock i.date BaseTax i.qcode#c.oil_price i.qcode#c.temp_avg i.qcode#c.humidity_avg i.qcode#c.precipitation_daily i.qcode#c.sunshine_hours i.qcode#c.L365.temp_avg i.qcode#c.L365.humidity_avg i.qcode#c.L365.precipitation_daily i.qcode#c.L365.sunshine_hours, vce(cluster qcode)"
+
 use m4, clear
 xtset qcode date, daily
 
-local h=200
+local h = 250
 capture noisily postutil clear
 tempfile base
 save "`base'", replace
@@ -2287,10 +2290,12 @@ drop if missing(`dX')
 
 gen double shock = `ev'*(d==1)
 eststo two_noG_group1: qui reg `dY' `expanatory_vars'
+display "Adjusted R-squared: " e(r2_a)
 
 replace shock=.
 replace shock = intensity*`ev'*(d==1)
 eststo two_G_group1: qui reg `dY' `expanatory_vars'
+display "Adjusted R-squared: " e(r2_a)
 
 
 
@@ -2314,12 +2319,12 @@ drop if missing(`dX')
 
 gen double shock = `ev'*(d==1)
 eststo two_noG_group2: qui reg `dY' `expanatory_vars'
+display "Adjusted R-squared: " e(r2_a)
 
 replace shock=.
 replace shock = intensity*`ev'*(d==1)
 eststo two_G_group2: qui reg `dY' `expanatory_vars'
-
-
+display "Adjusted R-squared: " e(r2_a)
 
 esttab one_noG two_noG_group1 two_noG_group2 one_G two_G_group1 two_G_group2 using "TRQ_table.tex", ///
     title(\label{tab:TRQ_table}) ///
@@ -2329,7 +2334,7 @@ esttab one_noG two_noG_group1 two_noG_group2 one_G two_G_group1 two_G_group2 usi
     mgroups("Without intensity" "With Intensity", pattern(1 0 0 1 0 0) ///
     prefix(\multicolumn{@span}{c}{) suffix(}) ///
     span erepeat(\cmidrule(lr){@span})) ///
-    addnotes("Evaluated at h=200 days")
+    addnotes("Evaluated at h=250 days")
 
 
 
@@ -2340,21 +2345,21 @@ esttab one_noG two_noG_group1 two_noG_group2 one_G two_G_group1 two_G_group2 usi
 
 //!======================================
 //!======================================
-//! Checking within R2 using areg (Use STATA19)
+//! Checking within R2 using areg, use STATA19
 //!======================================
 ** one treated group
 clear all
 set more off
 set matsize 11000, perm
 
-use m1, clear
+use m4, clear
 xtset qcode date, daily
 
 local expanatory_vars_date_removed "shock BaseTax i.qcode#c.oil_price i.qcode#c.temp_avg i.qcode#c.humidity_avg i.qcode#c.precipitation_daily i.qcode#c.sunshine_hours i.qcode#c.L365.temp_avg i.qcode#c.L365.humidity_avg i.qcode#c.L365.precipitation_daily i.qcode#c.L365.sunshine_hours"
 
 gen byte d = 0
-replace d = 1 if inlist(q_item,"배추","양배추","무","양파","파인애플","당근") ///
-    | inlist(q_item,"체리","참다래","아보카도","망고","바나나")
+replace d = 1 if inlist(q_item,"배추","양배추","무","양파","당근") ///
+    | inlist(q_item,"체리","참다래","아보카도","망고","바나나","파인애플")
 replace TRQD=0 if d==0
 
 gen flag = date if L.TRQD==0 & TRQD==1 & F.TRQD==1
@@ -2395,7 +2400,7 @@ bysort qcode (date): gen long cum_tr = sum(TRQD)
 gen byte prev_treated = (L.cum_tr > 0)      // t 이전에 한 번이라도 TRQD==1
 replace prev_treated = 0 if missing(prev_treated)
 
-local h = 200
+local h = 250
 tsset qcode date, daily
 gen byte event0 = (L.TRQD==0 & TRQD==1)
 gen double dY = F`h'.s_price - L.s_price
@@ -2413,12 +2418,178 @@ xtset qcode date_id
 
 gen double shock = event0*(d==1)
 areg dY `expanatory_vars_date_removed', absorb(date_id) vce(cluster qcode)
+display "Within R-squared: " e(r2_w)   // One_noG
 
 
 replace shock=.
 replace shock = intensity*event0*(d==1)
 areg dY `expanatory_vars_date_removed', absorb(date) vce(cluster qcode)
+display "Within R-squared: " e(r2_w)   // One_G
 
+
+
+
+** two treated group 1
+clear all
+set more off
+set matsize 11000, perm
+
+use m4, clear
+xtset qcode date, daily
+
+local expanatory_vars_date_removed "shock BaseTax i.qcode#c.oil_price i.qcode#c.temp_avg i.qcode#c.humidity_avg i.qcode#c.precipitation_daily i.qcode#c.sunshine_hours i.qcode#c.L365.temp_avg i.qcode#c.L365.humidity_avg i.qcode#c.L365.precipitation_daily i.qcode#c.L365.sunshine_hours"
+
+gen byte d = 0
+replace d = 1 if inlist(q_item,"배추","양배추","무","양파","당근") 
+drop if inlist(q_item,"체리","참다래","아보카도","망고","바나나","파인애플")
+replace TRQD=0 if d==0
+
+gen flag = date if L.TRQD==0 & TRQD==1 & F.TRQD==1
+by qcode: egen TRQstart = mean(flag)
+gen rtime = date - TRQstart
+
+gen total_import100_temp = total_import if d==1&inrange(rtime,-500,0)
+by qcode: egen double total_import100 = mean(total_import100_temp)
+replace total_import= total_import100 if d==1&rtime>=0
+by qcode: egen double total_import_mean = mean(total_import)
+gen import=total_import/total_import_mean
+
+replace s_price = ln(s_price)
+replace d_price = ln(d_price)
+replace i_price = ln(i_price)
+
+foreach var of varlist temp_avg humidity_avg precipitation_daily sunshine_hours {
+    rangestat (mean) `var', interval(date -100 0) by(qcode)
+    drop `var'
+    rename `var'_mean `var'
+}
+
+gen double TRQall_temp = TRQ if flag<. & d==1
+by qcode: egen double TRQall = mean(TRQall_temp)
+gen double intensity_temp = (BaseTax - TRQall) if d==1
+replace intensity_temp = 0 if intensity_temp < 0
+sort qcode rtime
+rangestat (mean) intensity_temp, interval(rtime -365 0) by(qcode)
+gen intensity_temp2 = intensity_temp_mean if flag<. & d==1
+by qcode: egen double intensity = mean(intensity_temp2)
+drop intensity_temp intensity_temp2
+replace intensity = 0 if missing(intensity)
+
+by qcode: egen byte ever_tr = max(TRQD)
+gen byte never_tr = (ever_tr==0)            // 전 기간 TRQD==0인 품목
+label var never_tr "Never treated across full sample"
+bysort qcode (date): gen long cum_tr = sum(TRQD)
+gen byte prev_treated = (L.cum_tr > 0)      // t 이전에 한 번이라도 TRQD==1
+replace prev_treated = 0 if missing(prev_treated)
+
+local h = 250
+tsset qcode date, daily
+gen byte event0 = (L.TRQD==0 & TRQD==1)
+gen double dY = F`h'.s_price - L.s_price
+gen double dX = F`h'.d_price - L.d_price
+quietly rangestat (max) TRQD, interval(date 1 `h') by(qcode)
+replace TRQD_max = 0 if missing(TRQD_max)
+local ctrlcond "prev_treated==0 & TRQD==0 & TRQD_max==0"
+keep if ((event0==1 & d==1) | (`ctrlcond'))
+drop if missing(dY)
+drop if missing(dX)
+
+egen date_id = group(date)
+xtset qcode date_id
+
+
+gen double shock = event0*(d==1)
+areg dY `expanatory_vars_date_removed', absorb(date_id) vce(cluster qcode)
+display "Within R-squared: " e(r2_w)   // two_noG 1
+
+
+replace shock=.
+replace shock = intensity*event0*(d==1)
+areg dY `expanatory_vars_date_removed', absorb(date) vce(cluster qcode)
+display "Within R-squared: " e(r2_w)   // two_G 1
+
+
+
+
+
+** two treated group 1
+clear all
+set more off
+set matsize 11000, perm
+
+use m4, clear
+xtset qcode date, daily
+
+local expanatory_vars_date_removed "shock BaseTax i.qcode#c.oil_price i.qcode#c.temp_avg i.qcode#c.humidity_avg i.qcode#c.precipitation_daily i.qcode#c.sunshine_hours i.qcode#c.L365.temp_avg i.qcode#c.L365.humidity_avg i.qcode#c.L365.precipitation_daily i.qcode#c.L365.sunshine_hours"
+
+gen byte d = 0
+replace d = 1 if inlist(q_item,"체리","참다래","아보카도","망고","바나나","파인애플")
+drop if inlist(q_item,"배추","양배추","무","양파","당근")
+replace TRQD=0 if d==0
+
+gen flag = date if L.TRQD==0 & TRQD==1 & F.TRQD==1
+by qcode: egen TRQstart = mean(flag)
+gen rtime = date - TRQstart
+
+gen total_import100_temp = total_import if d==1&inrange(rtime,-500,0)
+by qcode: egen double total_import100 = mean(total_import100_temp)
+replace total_import= total_import100 if d==1&rtime>=0
+by qcode: egen double total_import_mean = mean(total_import)
+gen import=total_import/total_import_mean
+
+replace s_price = ln(s_price)
+replace d_price = ln(d_price)
+replace i_price = ln(i_price)
+
+foreach var of varlist temp_avg humidity_avg precipitation_daily sunshine_hours {
+    rangestat (mean) `var', interval(date -100 0) by(qcode)
+    drop `var'
+    rename `var'_mean `var'
+}
+
+gen double TRQall_temp = TRQ if flag<. & d==1
+by qcode: egen double TRQall = mean(TRQall_temp)
+gen double intensity_temp = (BaseTax - TRQall) if d==1
+replace intensity_temp = 0 if intensity_temp < 0
+sort qcode rtime
+rangestat (mean) intensity_temp, interval(rtime -365 0) by(qcode)
+gen intensity_temp2 = intensity_temp_mean if flag<. & d==1
+by qcode: egen double intensity = mean(intensity_temp2)
+drop intensity_temp intensity_temp2
+replace intensity = 0 if missing(intensity)
+
+by qcode: egen byte ever_tr = max(TRQD)
+gen byte never_tr = (ever_tr==0)            // 전 기간 TRQD==0인 품목
+label var never_tr "Never treated across full sample"
+bysort qcode (date): gen long cum_tr = sum(TRQD)
+gen byte prev_treated = (L.cum_tr > 0)      // t 이전에 한 번이라도 TRQD==1
+replace prev_treated = 0 if missing(prev_treated)
+
+local h = 250
+tsset qcode date, daily
+gen byte event0 = (L.TRQD==0 & TRQD==1)
+gen double dY = F`h'.s_price - L.s_price
+gen double dX = F`h'.d_price - L.d_price
+quietly rangestat (max) TRQD, interval(date 1 `h') by(qcode)
+replace TRQD_max = 0 if missing(TRQD_max)
+local ctrlcond "prev_treated==0 & TRQD==0 & TRQD_max==0"
+keep if ((event0==1 & d==1) | (`ctrlcond'))
+drop if missing(dY)
+drop if missing(dX)
+
+egen date_id = group(date)
+xtset qcode date_id
+
+
+gen double shock = event0*(d==1)
+areg dY `expanatory_vars_date_removed', absorb(date_id) vce(cluster qcode)
+display "Within R-squared: " e(r2_w)   // two_noG 2
+
+
+replace shock=.
+replace shock = intensity*event0*(d==1)
+areg dY `expanatory_vars_date_removed', absorb(date) vce(cluster qcode)
+display "Within R-squared: " e(r2_w)   // two_G 2
 
 
 
