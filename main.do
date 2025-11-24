@@ -13,12 +13,11 @@
 ***********************************************
 
 
-display "`c(hostname)'"
-if "`c(hostname)'" == "DESKTOP-RGF569Q" global path "D:\JJ Dropbox\KCTDI_Research\할당관세 정책이 소비자 물가에 미치는 영향\GItPublish_test"
-if "`c(hostname)'" == "DESKTOP-RUG6PS0" global path "D:\JJ Dropbox\KCTDI_Research\할당관세 정책이 소비자 물가에 미치는 영향\GItPublish_test"
-if "`c(hostname)'" == "ubuzuz" global path "D:\JJ Dropbox\KCTDI_Research\할당관세 정책이 소비자 물가에 미치는 영향\GItPublish_test"
+
+global path="D:\JJ Dropbox\KCTDI_Research\할당관세 정책이 소비자 물가에 미치는 영향\GItPublish_test"
 cd "${path}"
 adopath + "${path}"
+
 
 
 
