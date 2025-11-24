@@ -1103,6 +1103,10 @@ export excel using "d_item.xlsx", firstrow(variables) replace
 
 
 
+
+
+
+//! ============================================
 //! ============================================
 //! Integration (combine datasets)
 //! 통합 
@@ -1444,6 +1448,19 @@ rename i_price_smooth i_price
 save m1, replace
 
 
+
+
+//!==============================
+//! 실질관세율_바나나_양파 그래프 생성
+use m1, clear 
+keep if inrange(date,mdy(1, 1, 2021),mdy(3, 31, 2025))
+keep if inlist(q_item,"바나나","양파")
+twoway (tsline BaseTax if q_item=="양파", lcolor(gs0) cmissing(n))(tsline BaseTax if q_item=="바나나", lcolor(red) cmissing(n) lpattern(dash)) ///
+, legend(order(1 "양파" 2 "바나나")) ytitle("실질관세율 (%)")
+graph export 실질관세율_바나나_양파.png, replace width(3000)
+
+
+
 use m1, clear
 keep if q_item=="망고"
 twoway (tsline import_price_filled if inrange(date,22281,23831), cmissing(n) lcolor(gs0)) ///
@@ -1451,7 +1468,6 @@ twoway (tsline import_price_filled if inrange(date,22281,23831), cmissing(n) lco
 (tsline i_price if inrange(date,22281,23831), lcolor(red) cmissing(n)) ///
 , legend(order(1 "import_price_filled" 2 "import_price_orig" 3 "i_price")) ///
 ytitle("수입가격 (원/kg)") xtitle("날짜")
-
 
 
 
@@ -1510,17 +1526,6 @@ twoway (tsline s_price if q_item=="당근", lcolor(gs0) lwidth(thick)) ///
 
 
 
-use m3, clear 
-local f1 = mdy(1,1,2024)
-local f2 = mdy(7,3,2023)
-keep if q_item=="망고"
-keep if inrange(date,22281,23831)   // 2021-01-01 ~ 2025-03-31
-twoway (tsline s_price, lcolor(red) lwidth(thick)) ///
-       (tsline d_price, lcolor(gs0) lwidth(thick) lpattern(dash)) ///
-       (tsline i_price, lcolor(gs0)), ///
-       yscale(range(0 .)) ylabel(0, add) ytitle("단위: 원/kg") xtitle("") /// 
-       legend(order(1 "소매가" 2 "도매가" 3 "수입가")) xline(`f1') xline(`f2')
-graph export "수입-도매-소매가.png", replace width(3000)
 
 
 
@@ -1528,7 +1533,7 @@ graph export "수입-도매-소매가.png", replace width(3000)
 
 
 
-//!============================================
+//!==========================================================
 //! For exporting effective tariff rates by country to Excel
 //! 실질관세율 국가별 엑셀 표 출력용
 use BaseTaxFin3, clear
@@ -1573,7 +1578,7 @@ export excel using "BaseTaxRealFinal_publish.xlsx", firstrow(variables) replace
 
 
 
-//! ============================================
+//! ==============================================================
 //! After checking the TRQ quota thresholds, reset the end dates
 //! 할당관세 한계수량 검사 후 종료기간 재설정
 
@@ -1965,8 +1970,6 @@ replace TRQD=1 if q_item=="파인애플"&inrange(date,mdy(11,10,2022),mdy(12,31,
 replace TRQD=1 if q_item=="망고"&inrange(date,mdy(11,10,2022),mdy(12,31,2022))  
 save m2, replace
 
-
-
 use m2, clear
 ** 파인애플 전처리1 구간 미제거 (m3)
 gen treated=0
@@ -1976,8 +1979,6 @@ replace TRQ=0 if TRQD==1&treated==1
 replace TRQ=5 if TRQD==1&q_item=="참다래"
 replace TRQ=. if TRQD==1&treated==0
 save m3, replace 
-
-
 
 use m2, clear
 ** 파인애플 전처리1 구간 제거 (m4)
@@ -1994,7 +1995,28 @@ save m4, replace
 
 
 
+//!=====================================
+//! 수입-도매-소매가.png figure generation
+//! 수입-도매-소매가.png 그래프 생성
+use m3, clear 
+local f1 = mdy(1,1,2024)
+local f2 = mdy(7,3,2023)
+keep if q_item=="파인애플"
+keep if inrange(date,22281,23831)   // 2021-01-01 ~ 2025-03-31
+twoway (tsline s_price, lcolor(red) lwidth(thick)) ///
+       (tsline d_price, lcolor(gs0) lwidth(thick) lpattern(dash)) ///
+       (tsline i_price, lcolor(gs0)), ///
+       yscale(range(0 .)) ylabel(0, add) ytitle("단위: 원/kg") xtitle("") /// 
+       legend(order(1 "소매가" 2 "도매가" 3 "수입가")) // xline(`f1') xline(`f2')
+graph export "수입-도매-소매가.png", replace width(3000)
 
+
+
+
+
+
+
+//!==========================================
 //! For generating the TRQ application table
 //! 할당관세 적용표 생성용
 use m2, clear
@@ -2071,6 +2093,221 @@ save t3, replace
 
 
 
+
+
+**==========================================================
+** LP‑DiD @ h=250 for all combinations of 5:6 splits of 11 items
+**==========================================================
+clear all
+set more off
+local expanatory_vars_twoshocks "shock1 shock2 i.date BaseTax i.qcode#c.oil_price i.qcode#c.temp_avg i.qcode#c.humidity_avg i.qcode#c.precipitation_daily i.qcode#c.sunshine_hours i.qcode#c.L365.temp_avg i.qcode#c.L365.humidity_avg i.qcode#c.L365.precipitation_daily i.qcode#c.L365.sunshine_hours, vce(cluster qcode)"
+
+use m4, clear
+tsset qcode date, daily
+local h = 250  
+* 11개 품목 목록(순서 고정)
+local ITEMS "양배추 파인애플 무 당근 참다래 양파 망고 바나나 아보카도 배추 체리"
+
+* 결과 저장 준비
+tempfile allresults
+tempname postresults
+postfile `postresults' ///
+    str200 group1 str200 group2 ///
+    long case_num long N_all long N1 long N2 long N_ctrl ///
+    double b1 lb1 ub1 b2 lb2 ub2 ///
+    using "`allresults'", replace
+
+local case_num = 0
+
+* ------ 11C6 조합 생성 루프 ------
+forvalues i1 = 1/11 {
+forvalues i2 = `=`i1'+1'/11 {
+forvalues i3 = `=`i2'+1'/11 {
+forvalues i4 = `=`i3'+1'/11 {
+forvalues i5 = `=`i4'+1'/11 {
+forvalues i6 = `=`i5'+1'/11 {
+
+    local n1 : word `i1' of `ITEMS'
+    local n2 : word `i2' of `ITEMS'
+    local n3 : word `i3' of `ITEMS'
+    local n4 : word `i4' of `ITEMS'
+    local n5 : word `i5' of `ITEMS'
+    local n6 : word `i6' of `ITEMS'
+
+    local group1_str "`n1', `n2', `n3', `n4', `n5', `n6'"
+
+    * 나머지 5개를 그룹2로 구성
+    local group2_str ""
+    local first = 1
+    forvalues k = 1/11 {
+        if !inlist(`k', `i1', `i2', `i3', `i4', `i5', `i6') {
+            local nk : word `k' of `ITEMS'
+            if `first' {
+                local group2_str "`nk'"
+                local first = 0
+            }
+            else {
+                local group2_str "`group2_str', `nk'"
+            }
+        }
+    }
+
+    local case_num = `case_num' + 1
+
+    preserve
+        *-----------------------------
+        * 그룹 정의 및 TRQD 재설정
+        *-----------------------------
+        gen byte d = 0
+        replace d = 1 if inlist(q_item,"`n1'","`n2'","`n3'","`n4'","`n5'","`n6'")
+        forvalues k = 1/11 {
+            if !inlist(`k', `i1', `i2', `i3', `i4', `i5', `i6') {
+                local nk : word `k' of `ITEMS'
+                replace d = 2 if q_item=="`nk'"
+            }
+        }
+        replace TRQD = 0 if d==0
+
+        *-----------------------------
+        * 이벤트 기준 및 강도 재계산
+        *-----------------------------
+        tsset qcode date, daily
+        gen flag = date if L.TRQD==0 & TRQD==1 & F.TRQD==1
+        by qcode: egen TRQstart = mean(flag)
+        gen rtime = date - TRQstart
+
+        * Import = total_import but constant if rtime>=0
+        gen total_import100_temp = total_import if d==1&inrange(rtime,-500,0)
+        by qcode: egen double total_import100 = mean(total_import100_temp)
+        replace total_import= total_import100 if d==1&rtime>=0
+        by qcode: egen double total_import_mean = mean(total_import)
+        gen import=total_import/total_import_mean
+
+        * 로그 변환
+        replace s_price = ln(s_price)
+        replace d_price = ln(d_price)
+        replace i_price = ln(i_price)
+
+        * 기후변수 rangestat 
+        foreach var of varlist temp_avg humidity_avg precipitation_daily sunshine_hours {
+            rangestat (mean) `var', interval(date -100 0) by(qcode)
+            drop `var'
+            rename `var'_mean `var'
+        }
+
+        * 이벤트 시 강도(처리그룹만)
+        gen double TRQall_temp = TRQ if flag<. & inlist(d,1,2)
+        by qcode: egen double TRQall = mean(TRQall_temp)
+        gen double intensity_temp = (BaseTax - TRQall) if inlist(d,1,2)
+        replace intensity_temp = 0 if intensity_temp < 0
+        sort qcode rtime
+        rangestat (mean) intensity_temp, interval(rtime -365 0) by(qcode)
+        gen double intensity_temp2 = intensity_temp_mean if flag<. & inlist(d,1,2)
+        by qcode: egen double intensity = mean(intensity_temp2)
+        drop intensity_temp intensity_temp2 TRQall_temp
+        replace intensity = 0 if missing(intensity)
+
+        ************************************************
+        * Clean control 판별을 위한 보조지표 (전 기간 기준)
+        ************************************************        
+        * ever treated (전 기간 중 TRQD==1이 있었는지)
+        by qcode: egen byte ever_tr = max(TRQD)
+        gen byte never_tr = (ever_tr==0)         
+        label var never_tr "Never treated across full sample"
+        * t 이전 처리 이력 여부(비흡수/반복 처리를 안전하게 배제)
+        bysort qcode (date): gen long cum_tr = sum(TRQD)
+        gen byte prev_treated = (L.cum_tr > 0)
+        replace prev_treated = 0 if missing(prev_treated)
+
+        ************************************************
+        * h=250: 좌변과 클린 컨트롤 생성
+        ************************************************
+        gen byte   event0 = (L.TRQD==0 & TRQD==1)
+        gen double dY     = F`h'.s_price - L.s_price
+        gen double dX = F`h'.d_price - L.d_price
+
+        quietly rangestat (max) TRQD, interval(date 1 `h') by(qcode)
+        replace TRQD_max = 0 if missing(TRQD_max)
+
+        local ctrlcond "prev_treated==0 & TRQD==0 & TRQD_max==0"
+
+        keep if ((event0==1 & inlist(d,1,2)) | (`ctrlcond'))
+        drop if missing(dY)
+        drop if missing(dX)
+
+        count
+        local Nall = r(N)
+        count if event0==1 & d==1
+        local N1 = r(N)
+        count if event0==1 & d==2
+        local N2 = r(N)
+        count if `ctrlcond'
+        local Nc = r(N)
+
+        if (`Nall'==0 | (`N1'+`N2')==0 | `Nc'==0) {
+            post `postresults' ("`group1_str'") ("`group2_str'") (`case_num') ///
+                (`Nall') (`N1') (`N2') (`Nc') ///
+                (. ) (. ) (. ) (. ) (. ) (. )
+        }
+        else {
+            * 그룹별 충격(강도×신규처리×그룹지시)
+            gen double shock1 = intensity*event0*(d==1)
+            gen double shock2 = intensity*event0*(d==2)
+
+            quietly regress dY `expanatory_vars_twoshocks'
+
+            post `postresults' ("`group1_str'") ("`group2_str'") (`case_num') ///
+                (`Nall') (`N1') (`N2') (`Nc') ///
+                (_b[shock1]) (_b[shock1]-1.959964*_se[shock1]) (_b[shock1]+1.959964*_se[shock1]) ///
+                (_b[shock2]) (_b[shock2]-1.959964*_se[shock2]) (_b[shock2]+1.959964*_se[shock2])
+        }
+    restore
+
+}
+}
+}
+}
+}
+}  
+postclose `postresults'
+
+use "`allresults'", clear
+order case_num group1 group2 N_all N1 N2 N_ctrl b1 lb1 ub1 b2 lb2 ub2
+sort case_num
+save "LPDID_h200_5v6_allcombos.dta", replace
+export excel using "LPDID_h200_5v6_allcombos.xlsx", firstrow(variables) replace
+
+
+
+
+//!================================
+//! How we divded into two group?
+use LPDID_h200_5v6_allcombos, clear 
+keep group1 b1
+rename (group1 b1) (group beta) 
+save group1, replace  
+
+use LPDID_h200_5v6_allcombos, clear 
+keep group2 b2
+rename (group2 b2) (group beta) 
+save group2, replace 
+
+use group1, clear 
+append using group2 
+sort beta 
+gen id = _n 
+tsset id 
+twoway(tsline beta, lwidth(thick) lcolor(gs0)), ///
+    xline(8) xline(84) ///
+    ytitle("추정 계수값") xtitle("조합 경우의 수") ///
+    xlabel(0(100)1000)
+graph export group_division.png, replace width(3000)
+
+
+
+
+
+
 //!================================
 //! LP-DID graphs (Baseline), use STATA19
 ** one treated group; no intensity
@@ -2111,9 +2348,10 @@ clear all
 set more off
 set matsize 11000, perm
 
+local source_data="m1"
 local expanatory_vars "shock i.date BaseTax i.qcode#c.oil_price i.qcode#c.temp_avg i.qcode#c.humidity_avg i.qcode#c.precipitation_daily i.qcode#c.sunshine_hours i.qcode#c.L365.temp_avg i.qcode#c.L365.humidity_avg i.qcode#c.L365.precipitation_daily i.qcode#c.L365.sunshine_hours, vce(cluster qcode)"
 
-use m4, clear
+use `source_data', clear
 xtset qcode date, daily
 
 gen byte d = 0
@@ -2190,7 +2428,7 @@ set matsize 11000, perm
 
 local expanatory_vars "shock i.date BaseTax i.qcode#c.oil_price i.qcode#c.temp_avg i.qcode#c.humidity_avg i.qcode#c.precipitation_daily i.qcode#c.sunshine_hours i.qcode#c.L365.temp_avg i.qcode#c.L365.humidity_avg i.qcode#c.L365.precipitation_daily i.qcode#c.L365.sunshine_hours, vce(cluster qcode)"
 
-use m4, clear
+use `source_data', clear
 xtset qcode date, daily
 
 local h = 250
@@ -2326,7 +2564,7 @@ replace shock = intensity*`ev'*(d==1)
 eststo two_G_group2: qui reg `dY' `expanatory_vars'
 display "Adjusted R-squared: " e(r2_a)
 
-esttab one_noG two_noG_group1 two_noG_group2 one_G two_G_group1 two_G_group2 using "TRQ_table.tex", ///
+esttab one_noG two_noG_group1 two_noG_group2 one_G two_G_group1 two_G_group2 using "TRQ_table_`source_data'.tex", ///
     title(\label{tab:TRQ_table}) ///
     b(%9.5f) se(%9.5f) ///
     lab se r2 pr2 noconstant replace ///
