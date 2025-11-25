@@ -9,7 +9,7 @@
 - 소속: 관세무역개발원
 
 ## English version (more upgraded than Korean version)
-- English paper (work in progress)
+- [English paper (Submitted to Food Policy)](https://jayjeo.github.io/The_Causal_Effects_of_Tariff_Rate_Quota_Policies_on_Agricultural_Product_Retail_Prices.pdf)
 - [Repliction Instructions For English speakers](README_eng.md)
 
 ## Korean version
