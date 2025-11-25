@@ -2280,7 +2280,7 @@ export excel using "LPDID_h200_5v6_allcombos.xlsx", firstrow(variables) replace
 
 
 //!================================
-//! How we divded into two group?
+//! How we divded into two groups?
 use LPDID_h200_5v6_allcombos, clear 
 keep group1 b1
 rename (group1 b1) (group beta) 
