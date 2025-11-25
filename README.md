@@ -1,6 +1,6 @@
 
 # The Causal Effects of Tariff-Rate Quota Policies on Agricultural Product Retail Prices (STATA and R code)
-## 할당관세 정책이 소비자 물가에 미치는 영향 (STATA 와 R 코드집)
+## (할당관세 정책이 소비자 물가에 미치는 영향 (STATA 와 R 코드집))
 - Authors: Youngmi Kim, Deokjae Jeong
 - 저자: 김영미, 정덕재
 - Year: 2025
