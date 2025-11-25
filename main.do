@@ -1455,8 +1455,13 @@ use m1, clear
 keep if inrange(date,mdy(1, 1, 2021),mdy(3, 31, 2025))
 keep if inlist(q_item,"바나나","양파")
 twoway (tsline BaseTax if q_item=="양파", lcolor(gs0) cmissing(n))(tsline BaseTax if q_item=="바나나", lcolor(red) cmissing(n) lpattern(dash)) ///
-, legend(order(1 "양파" 2 "바나나")) ytitle("실질관세율 (%)")
+, legend(order(1 "양파" 2 "바나나")) ytitle("실질관세율 (%)") xtitle("")
 graph export 실질관세율_바나나_양파.png, replace width(3000)
+
+set scheme s1color
+twoway (tsline BaseTax if q_item=="양파", lcolor(gs0) cmissing(n))(tsline BaseTax if q_item=="바나나", lcolor(red) cmissing(n) lpattern(dash)) ///
+, legend(order(1 "Onion" 2 "Banana")) ytitle("Applied Tariff Rate (%)") xtitle("")
+graph export 실질관세율_바나나_양파_eng.png, replace width(3000)
 
 
 
@@ -1499,6 +1504,13 @@ twoway (tsline s_price_orig2, lcolor(gs0) lwidth(thick)) ///
        ytitle("단위: 원/kg") xtitle("") legend(label(1 "원자료") label(2 "계절조정"))
 graph export 계절조정.png, replace width(3000)
 
+set scheme s1color
+twoway (tsline s_price_orig2, lcolor(gs0) lwidth(thick)) ///
+       (tsline s_price2, lcolor(red)), ///
+       ytitle("Unit: KRW/kg") xtitle("") legend(label(1 "Raw data") label(2 "Seasonally adjusted"))
+graph export 계절조정_eng.png, replace width(3000)
+
+
 
 use s_mergeready, clear 
 keep if s_item=="배추_배추(전체)"
@@ -1506,6 +1518,16 @@ twoway (tsline s_price2, lcolor(gs0) lwidth(thick)) ///
        (tsline smooth_s_price2, lcolor(yellow)), ///
        ytitle("단위: 원/kg") xtitle("") legend(label(1 "계절조정") label(2 "hpfilter"))
 graph export hpfilter.png, replace width(3000)
+
+set scheme s1color
+use s_mergeready, clear 
+keep if inrange(date,mdy(1,1,2021),mdy(3,31,2025))
+keep if s_item=="배추_배추(전체)"
+twoway (tsline s_price2, lcolor(gs0) lwidth(thick)) ///
+       (tsline smooth_s_price2, lcolor(yellow)), ///
+       ytitle("Unit: KRW/kg") xtitle("") legend(label(1 "Seasonally adjusted") label(2 "Hodrick-Prescott smooth"))
+graph export hpfilter_eng.png, replace width(3000)
+
 
 
 use m1, clear 
@@ -2009,6 +2031,14 @@ twoway (tsline s_price, lcolor(red) lwidth(thick)) ///
        legend(order(1 "소매가" 2 "도매가" 3 "수입가")) // xline(`f1') xline(`f2')
 graph export "수입-도매-소매가.png", replace width(3000)
 
+set scheme s1color
+twoway (tsline s_price, lcolor(red) lwidth(thick)) ///
+       (tsline d_price, lcolor(gs0) lwidth(thick) lpattern(dash)) ///
+       (tsline i_price, lcolor(gs0)), ///
+       yscale(range(0 .)) ylabel(0, add) ytitle("Unit: KRW/kg") xtitle("") /// 
+       legend(order(1 "Retail price" 2 "Wholesale price" 3 "Import price")) // xline(`f1') xline(`f2')
+graph export "수입-도매-소매가_eng.png", replace width(3000)
+
 
 
 
@@ -2302,6 +2332,12 @@ twoway(tsline beta, lwidth(thick) lcolor(gs0)), ///
     xlabel(0(100)1000)
 graph export group_division.png, replace width(3000)
 
+set scheme s1color
+twoway(tsline beta, lwidth(thick) lcolor(gs0)), ///
+    xline(8) xline(84) ///
+    ytitle("Estimated Coefficient") xtitle("Combination Number") ///
+    xlabel(0(100)1000)
+graph export group_division_eng.png, replace width(3000)
 
 
 
