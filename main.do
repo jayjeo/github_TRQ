@@ -652,14 +652,6 @@ drop total_import
 save BaseTaxFin, replace  
 
 
-//! Export to Excel (Stata 19)
-//! Stata 19   엑셀 내보내기
-use BaseTaxFin, clear 
-keep if inlist(HS10,"0703101090","0703101000")  //! 양파만 남김
-sort time 
-order time HS10 BaseTax
-export excel using "${path}/BaseTaxFin양파.xlsx", firstrow(variables) replace
-
 
 
 
@@ -1086,7 +1078,6 @@ drop _merge
 drop pcode
 encode d_item, gen(pcode)
 xtset pcode date, daily 
-//tsfill, full
 sort pcode date
 by pcode: ipolate d_price date, gen(d_price2) 
 tsfilter hp d_price_hp = d_price2, trend(smooth_d_price2) smooth(600)  // 600이 적당한듯
@@ -1341,10 +1332,6 @@ replace HS2024="0709609000_0" if HS2024=="0709609000"&expand==0
 replace HS2024="0709609000_1" if HS2024=="0709609000"&expand==1
 drop expand
 duplicates drop  
-// Set BaseTax=45 when HS2024=="0808100000" (apples)
-//replace BaseTax=45 if HS2024=="0808100000"  // 사과
-// Set BaseTax=5.588108 when HS2024=="0810500000" & time==771 (kiwifruit, 2024m4)
-//replace BaseTax=5.588108 if HS2024=="0810500000"&time==771  // 참다래 2024m4
 save BaseTaxFin2, replace 
 
 
@@ -1358,10 +1345,6 @@ replace HS2024="0709609000_0" if HS2024=="0709609000"&expand==0
 replace HS2024="0709609000_1" if HS2024=="0709609000"&expand==1
 drop expand
 duplicates drop  
-// Set BaseTax=45 when HS2024=="0808100000" (apples)
-//replace BaseTax=45 if HS2024=="0808100000"  // 사과
-// Set BaseTax=5.588108 when HS2024=="0810500000" & time==771 (kiwifruit, 2024m4)
-//replace BaseTax=5.588108 if HS2024=="0810500000"&time==771  // 참다래 2024m4
 save total_import2, replace 
 
 
@@ -1461,27 +1444,10 @@ graph export 실질관세율_바나나_양파.png, replace width(3000)
 set scheme s1color
 twoway (tsline BaseTax if q_item=="양파", lcolor(gs0) cmissing(n))(tsline BaseTax if q_item=="바나나", lcolor(red) cmissing(n) lpattern(dash)) ///
 , legend(order(1 "Onion" 2 "Banana")) ytitle("Applied Tariff Rate (%)") xtitle("")
-graph export 실질관세율_바나나_양파_eng.png, replace width(3000)
+graph export 실질관세율_바나나_양파_eng.png, replace width(3000)  
 
 
 
-use m1, clear
-keep if q_item=="망고"
-twoway (tsline import_price_filled if inrange(date,22281,23831), cmissing(n) lcolor(gs0)) ///
-(tsline import_price_orig if inrange(date,22281,23831), cmissing(n) lcolor(gs0)) ///
-(tsline i_price if inrange(date,22281,23831), lcolor(red) cmissing(n)) ///
-, legend(order(1 "import_price_filled" 2 "import_price_orig" 3 "i_price")) ///
-ytitle("수입가격 (원/kg)") xtitle("날짜")
-
-
-
-gen flag=date if L.TRQD==0&TRQD==1&F.TRQD==1
-rename BaseTax BaseTax_new
-keep q_item date BaseTax_new flag
-merge 1:1 q_item date using beforechange
-keep if flag!=.
-order q_item date BaseTax BaseTax_new
-keep if inlist(q_item,"당근","망고","무","바나나","배추","아보카도")|inlist(q_item,"양배추","양파","참다래","체리","파인애플")
 
 use s2, clear 
 keep s_item date s_price s_price_orig s_item2
@@ -1508,44 +1474,7 @@ set scheme s1color
 twoway (tsline s_price_orig2, lcolor(gs0) lwidth(thick)) ///
        (tsline s_price2, lcolor(red)), ///
        ytitle("Unit: KRW/kg") xtitle("") legend(label(1 "Raw data") label(2 "Seasonally adjusted"))
-graph export 계절조정_eng.png, replace width(3000)
-
-
-
-use s_mergeready, clear 
-keep if s_item=="배추_배추(전체)"
-twoway (tsline s_price2, lcolor(gs0) lwidth(thick)) ///
-       (tsline smooth_s_price2, lcolor(yellow)), ///
-       ytitle("단위: 원/kg") xtitle("") legend(label(1 "계절조정") label(2 "hpfilter"))
-graph export hpfilter.png, replace width(3000)
-
-set scheme s1color
-use s_mergeready, clear 
-keep if inrange(date,mdy(1,1,2021),mdy(3,31,2025))
-keep if s_item=="배추_배추(전체)"
-twoway (tsline s_price2, lcolor(gs0) lwidth(thick)) ///
-       (tsline smooth_s_price2, lcolor(yellow)), ///
-       ytitle("Unit: KRW/kg") xtitle("") legend(label(1 "Seasonally adjusted") label(2 "Hodrick-Prescott smooth"))
-graph export hpfilter_eng.png, replace width(3000)
-
-
-
-use m1, clear 
-keep if q_item=="파인애플"
-twoway (tsline s_price, lcolor(gs0) lwidth(thick)) ///
-       (tsline d_price, lcolor(red)), ///
-       yscale(range(0 .)) ylabel(0, add) ytitle("단위: 원/kg") xtitle("")
-graph export 도매-소매.png, replace width(3000)
-
-
-use m1, clear 
-keep if q_item=="당근"|q_item=="무"
-twoway (tsline s_price if q_item=="당근", lcolor(gs0) lwidth(thick)) ///
-       (tsline s_price if q_item=="무", lcolor(red)), ///
-       yscale(range(0 .)) ylabel(0, add) ytitle("단위: 원/kg") xtitle("") xline(23450) 
-
-
-
+graph export 계절조정_eng.png, replace width(3000)  
 
 
 
@@ -1555,7 +1484,7 @@ twoway (tsline s_price if q_item=="당근", lcolor(gs0) lwidth(thick)) ///
 
 
 //!==========================================================
-//! For exporting effective tariff rates by country to Excel
+//! For exporting `applied tariff rates' by country to Excel
 //! 실질관세율 국가별 엑셀 표 출력용
 use BaseTaxFin3, clear
 keep time HS10 BaseTax q_item IMP_*
@@ -2037,7 +1966,7 @@ twoway (tsline s_price, lcolor(red) lwidth(thick)) ///
        (tsline i_price, lcolor(gs0)), ///
        yscale(range(0 .)) ylabel(0, add) ytitle("Unit: KRW/kg") xtitle("") /// 
        legend(order(1 "Retail price" 2 "Wholesale price" 3 "Import price")) // xline(`f1') xline(`f2')
-graph export "수입-도매-소매가_eng.png", replace width(3000)
+graph export "수입-도매-소매가_eng.png", replace width(3000)   
 
 
 
@@ -2337,7 +2266,7 @@ twoway(tsline beta, lwidth(thick) lcolor(gs0)), ///
     xline(8) xline(84) ///
     ytitle("Estimated Coefficient") xtitle("Combination Number") ///
     xlabel(0(100)1000)
-graph export group_division_eng.png, replace width(3000)
+graph export group_division_eng.png, replace width(3000)  
 
 
 
@@ -2618,7 +2547,7 @@ esttab one_noG two_noG_group1 two_noG_group2 one_G two_G_group1 two_G_group2 usi
 
 //!======================================
 //!======================================
-//! Checking within R2 using areg, use STATA19
+//! Checking within R^2 using areg, use STATA19
 //!======================================
 ** one treated group
 clear all
