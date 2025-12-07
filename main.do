@@ -13,19 +13,14 @@
 ***********************************************
 
 
-
 global path="D:\JJ Dropbox\KCTDI_Research\할당관세 정책이 소비자 물가에 미치는 영향\GItPublish_test"
 cd "${path}"
 adopath + "${path}"
 
 
+// #sr 실질 관세율 계산
+* Calculation of effective tariff rates
 
-
-//! ============================================
-*********************************
-** Calculation of effective tariff rates
-** 실질 관세율 계산
-*********************************
 
 //! Stata 19
 forval i=2021(1)2025 {
@@ -651,19 +646,11 @@ restore
 drop total_import
 save BaseTaxFin, replace  
 
+// #er 
 
 
-
-
-
-
-
-
-//! ============================================
-*********************************
-** NongNet price and sales quantity data
-** 농넷 가격, 판매량 데이터
-*********************************
+// #sr 농넷 가격, 판매량 데이터
+* NongNet price and sales quantity data
 
 cd "${path}"
 
@@ -852,16 +839,11 @@ tsfilter hp quant_hp = quant2, trend(smooth_quant) smooth(600)  // 600이 적당
 drop price quant
 rename (price2 quant2)(price quant)
 save q5, replace 
+// #er 
 
 
-
-
-
-
-
-//! ============================================
-//! Retail prices
-//! 소매가격
+// #sr 소매가격
+* Retail prices
 use s1, clear
 tostring 일자, replace 
 gen double date = mdy(real(substr(일자,5,2)), real(substr(일자,7,2)), real(substr(일자,1,4)))
@@ -975,14 +957,11 @@ use s2, clear
 collapse (mean) s_code, by(s_item)
 save s3, replace 
 export excel using "s_item.xlsx", firstrow(variables) replace
+// #er 
 
 
-
-
-
-//! ============================================
-//! Wholesale prices
-//! 도매가격 
+// #sr 도매가격
+* Wholesale prices 
 use d1, clear
 tostring 일자, replace
 gen double date = mdy(real(substr(일자,5,2)), real(substr(일자,7,2)), real(substr(일자,1,4)))
@@ -1088,18 +1067,11 @@ use d3, clear
 collapse (mean) d_code, by(d_item)
 save d_item, replace
 export excel using "d_item.xlsx", firstrow(variables) replace
+// #er 
 
 
-
-
-
-
-
-
-//! ============================================
-//! ============================================
-//! Integration (combine datasets)
-//! 통합 
+// #sr 통합
+* Integration (combine datasets)
 import excel "원달러 환율.xlsx", sheet("Sheet0") firstrow clear 
 tostring date, replace 
 gen year=substr(date,1,4)
@@ -1428,12 +1400,10 @@ tsfilter hp i_price_hp = i_price, trend(i_price_smooth) smooth(60)
 drop i_price
 rename i_price_smooth i_price
 save m1, replace
+// #er 
 
 
-
-
-//!==============================
-//! 실질관세율_바나나_양파 그래프 생성
+// #sr  실질관세율_바나나_양파 그래프 생성
 use m1, clear 
 keep if inrange(date,mdy(1, 1, 2021),mdy(3, 31, 2025))
 keep if inlist(q_item,"바나나","양파")
@@ -1476,16 +1446,11 @@ twoway (tsline s_price_orig2, lcolor(gs0) lwidth(thick)) ///
        ytitle("Unit: KRW/kg") xtitle("") legend(label(1 "Raw data") label(2 "Seasonally adjusted"))
 graph export 계절조정_eng.png, replace width(3000)  
 
+// #er 
 
 
-
-
-
-
-
-//!==========================================================
-//! For exporting `applied tariff rates' by country to Excel
-//! 실질관세율 국가별 엑셀 표 출력용
+// #sr 실질관세율 국가별 엑셀 표 출력용
+* For exporting `applied tariff rates' by country to Excel
 use BaseTaxFin3, clear
 keep time HS10 BaseTax q_item IMP_*
 order q_item time HS10 BaseTax IMP_*
@@ -1522,16 +1487,11 @@ order q_item time HS10 BaseTax `ord_imps'
 sort q_item time
 export excel using "BaseTaxRealFinal_publish.xlsx", firstrow(variables) replace
 
+// #er 
 
 
-
-
-
-
-//! ==============================================================
-//! After checking the TRQ quota thresholds, reset the end dates
-//! 할당관세 한계수량 검사 후 종료기간 재설정
-
+// #sr  할당관세 한계수량 검사 후 종료기간 재설정
+* After checking the TRQ quota thresholds, reset the end dates
 check_TRQquota 당근
 local range="inrange(mtime,ym(2024,5),ym(2024,9))"
 local item="당근"
@@ -1941,13 +1901,11 @@ replace TRQ=0 if TRQD==1&treated==1
 replace TRQ=5 if TRQD==1&q_item=="참다래"
 replace TRQ=. if TRQD==1&treated==0
 save m4, replace 
+// #er 
 
 
-
-
-//!=====================================
-//! 수입-도매-소매가.png figure generation
-//! 수입-도매-소매가.png 그래프 생성
+// #sr 수입-도매-소매가.png 그래프 생성
+* 수입-도매-소매가.png figure generation
 use m3, clear 
 local f1 = mdy(1,1,2024)
 local f2 = mdy(7,3,2023)
@@ -1968,15 +1926,11 @@ twoway (tsline s_price, lcolor(red) lwidth(thick)) ///
        legend(order(1 "Retail price" 2 "Wholesale price" 3 "Import price")) // xline(`f1') xline(`f2')
 graph export "수입-도매-소매가_eng.png", replace width(3000)   
 
+// #er 
 
 
-
-
-
-
-//!==========================================
-//! For generating the TRQ application table
-//! 할당관세 적용표 생성용
+// #sr  할당관세 적용표 생성용
+* For generating the TRQ application table
 use m2, clear
 keep q_item date TRQD
 keep if inlist(q_item,"배추","양배추","당근","파인애플","무","양파")|inlist(q_item,"체리","참다래","아보카도","망고","바나나")
@@ -2045,17 +1999,10 @@ gen time = string(date, "%tdCCYY-NN-DD")
 drop _merge date
 save t3, replace 
 
+// #er 
 
 
-
-
-
-
-
-
-**==========================================================
-** LP‑DiD @ h=250 for all combinations of 5:6 splits of 11 items
-**==========================================================
+// #sr  LP‑DiD @ h=250 for all combinations of 5:6 splits of 11 items
 clear all
 set more off
 local expanatory_vars_twoshocks "shock1 shock2 i.date BaseTax i.qcode#c.oil_price i.qcode#c.temp_avg i.qcode#c.humidity_avg i.qcode#c.precipitation_daily i.qcode#c.sunshine_hours i.qcode#c.L365.temp_avg i.qcode#c.L365.humidity_avg i.qcode#c.L365.precipitation_daily i.qcode#c.L365.sunshine_hours, vce(cluster qcode)"
@@ -2235,11 +2182,10 @@ sort case_num
 save "LPDID_h200_5v6_allcombos.dta", replace
 export excel using "LPDID_h200_5v6_allcombos.xlsx", firstrow(variables) replace
 
+// #er 
 
 
-
-//!================================
-//! How we divded into two groups?
+// #sr   How we divded into two groups?
 use LPDID_h200_5v6_allcombos, clear 
 keep group1 b1
 rename (group1 b1) (group beta) 
@@ -2268,12 +2214,10 @@ twoway(tsline beta, lwidth(thick) lcolor(gs0)), ///
     xlabel(0(100)1000)
 graph export group_division_eng.png, replace width(3000)  
 
+// #er 
 
 
-
-
-//!================================
-//! LP-DID graphs (Baseline), use STATA19
+// #sr   LP-DID graphs (Baseline), use STATA19
 ** one treated group; no intensity
 do LPoneMAX_noG파양m4
 ** two treated groups; no intensity
@@ -2282,12 +2226,11 @@ do LPseparateMAX_noG파양m4
 do LPoneMAX_G파양m4
 ** two treated groups; intensity
 do LPseparateMAX_G파양m4
-//!================================
+
+// #er 
 
 
-
-//!================================
-//! LP-DID graphs (Robustness Check), use STATA19
+// #sr  LP-DID graphs (Robustness Check), use STATA19
 ** one treated group; no intensity
 do LPoneMAX_noG파양m1
 ** two treated groups; no intensity
@@ -2296,17 +2239,11 @@ do LPseparateMAX_noG파양m1
 do LPoneMAX_G파양m1
 ** two treated groups; intensity
 do LPseparateMAX_G파양m1
-//!================================
+
+// #er 
 
 
-
-
-
-
-//!======================================
-//!======================================
-//! Table generation for LP-DiD results
-//!======================================
+// #sr  Table generation for LP-DiD results
 ** one treated group
 clear all
 set more off
@@ -2538,17 +2475,10 @@ esttab one_noG two_noG_group1 two_noG_group2 one_G two_G_group1 two_G_group2 usi
     span erepeat(\cmidrule(lr){@span})) ///
     addnotes("Evaluated at h=250 days")
 
+// #er 
 
 
-
-
-
-
-
-//!======================================
-//!======================================
-//! Checking within R^2 using areg, use STATA19
-//!======================================
+// #sr  Checking within R^2 using areg, use STATA19
 ** one treated group
 clear all
 set more off
@@ -2793,8 +2723,93 @@ replace shock = intensity*event0*(d==1)
 areg dY `expanatory_vars_date_removed', absorb(date) vce(cluster qcode)
 display "Within R-squared: " e(r2_w)   // two_G 2
 
+// #er 
 
 
+// #sr  Import Analysis (Mechanism)
+
+foreach mm of newlist m1 m4 {
+    clear all
+    set more off
+    set matsize 11000, perm
+
+    use `mm', clear
+    xtset qcode date, daily
+    gen monthly_date = ym(year, month)
+    format monthly_date %tm
+
+    gen byte d = 0
+    replace d = 1 if inlist(q_item,"배추","양배추","무","양파","당근") ///
+        | inlist(q_item,"체리","참다래","아보카도","망고","바나나","파인애플")
+    replace TRQD=0 if d==0
+
+    * 품목별 결측 비율 계산 후 플래그 생성
+    bysort q_item: egen total_obs = count(date)
+    bysort q_item: egen nonmiss_price = count(i_price)
+    gen missing_ratio = 1 - (nonmiss_price / total_obs)
+
+    * 40% 이상 결측이면 1, 아니면 0
+    gen i_price_missing = (missing_ratio >= 0.4)
+    count if i_price_missing==1 
+
+    collapse (mean) TRQD total_import BaseTax temp_avg humidity_avg precipitation_daily sunshine_hours oil_price i_price i_price_missing, by(q_item monthly_date)
+    rename total_import importvolume
+    replace importvolume=1 if importvolume==.
+    replace importvolume=1 if importvolume==0
+
+    /*
+    egen i_price_temp=mean(i_price), by(q_item)
+    replace i_price=i_price_temp if i_price==.
+    */
+
+    gen TRQDtemp=TRQD
+    replace TRQD=.
+    replace TRQD=1 if TRQDtemp>=0.5
+    replace TRQD=0 if TRQDtemp<0.5
+    drop TRQDtemp
+    gen TRQ=.
+    replace TRQ=0 if TRQD==1&(inlist(q_item,"배추","양배추","무","양파","당근")|inlist(q_item,"체리","아보카도","망고","바나나","파인애플"))
+    replace TRQ=5 if TRQD==1&(inlist(q_item,"참다래"))
+
+    //! Include Tariff tax to import price
+    replace i_price=. if i_price==0
+    gen i_price_zero=1 if i_price==.  // missing not exist confirmed
+    gen i_price_without_tariff=i_price
+    replace i_price=i_price*(1+BaseTax/100) if TRQ==.
+    replace i_price=i_price*(1+TRQ/100) if TRQ!=.
+
+    egen qcode=group(q_item) 
+    rename monthly_date date
+
+    save i`mm', replace 
+}
+
+// #er 
+
+
+// #sr   LP-DID graphs (Baseline), use STATA19
+//! Import volume
+** two treated groups; no intensity
+do LPseparateMAX_noG파양수m4
+** two treated groups; intensity
+do LPseparateMAX_G파양수m4
+
+//! Import price
+** two treated groups; no intensity
+do LPseparateMAX_noG파양가m4
+** two treated groups; intensity
+do LPseparateMAX_G파양가m4
+** two treated groups; intensity; tariff excluded price
+do LPseparateMAX_G파양가m4_관세비포함
+
+//! Wholesale price
+** two treated groups; no intensity
+do LPseparateMAX_noG파양도m4
+** two treated groups; intensity
+do LPseparateMAX_G파양도m4
+
+
+// #er 
 
 
 
