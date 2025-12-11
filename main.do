@@ -594,10 +594,13 @@ use long_init, clear
 merge 1:1 idn time loc using long_IMP, nogenerate
 merge 1:1 idn time loc using long_ORD1, nogenerate
 replace IMP_=0 if IMP_==.
+preserve 
+drop if ORD1_ ==.
+save long_init_importprice, replace
+restore  
 collapse (mean) ORD1_ [pweight=IMP_], by(idn time)
 rename ORD1_ BaseTax
 save BaseTax, replace 
-
 
 use sp0, clear 
 set more off, perm
@@ -1338,6 +1341,12 @@ gen month=month(dofm(time))
 order time year month 
 sort HS2024 time
 save BaseTaxFin3, replace 
+
+use BaseTaxFin3, clear 
+egen IMP=rowtotal(IMP_*), missing
+keep year month q_item IMP
+save compareIMP, replace
+
 use d_mergeready, clear 
 merge 1:1 date q_item using s_mergeready
 drop _merge
@@ -1400,6 +1409,81 @@ tsfilter hp i_price_hp = i_price, trend(i_price_smooth) smooth(60)
 drop i_price
 rename i_price_smooth i_price
 save m1, replace
+// #er 
+
+
+// #sr  국가별 실질관세율 계산
+* Get applied tariff rate by country x monthlytime x HS
+import excel "kati_import_price_finished_finaluse.xlsx", sheet("Sheet1") firstrow allstring clear
+destring year month 중량 금액, replace 
+gen time = ym(year, month)
+format time %tm
+rename country loc
+drop year month 
+save kati_import_price_finished_finaluse, replace 
+
+use sp0, clear 
+keep idn time HS10 품명한글
+merge 1:m idn using long_init_importprice, nogenerate
+rename ORD1_ BaseTax_loc
+
+gen year = year(dofm(time))
+gen month = month(dofm(time))
+gen HS2024=HS10
+preserve 
+    keep if HS10=="0709999000"&year==2021
+    replace HS2024="0709993000"
+    replace 품명한글="깻잎"
+    save 깻잎2021, replace 
+restore 
+append using 깻잎2021
+replace 품명한글="미나리" if 품명한글=="기타"&HS10=="0709999000"
+preserve
+    keep if HS10=="0702000000"&year==2021
+    replace HS2024="0702001000"
+    replace 품명한글="방울토마토"
+    save 방울토마토2021, replace 
+restore 
+preserve
+    keep if HS10=="0702000000"&year==2021
+    replace HS2024="0702009000"
+    replace 품명한글="토마토"
+    save 토마토2021, replace 
+restore 
+drop if HS10=="0702000000"&year==2021
+append using 방울토마토2021
+append using 토마토2021
+replace HS2024="0807199000" if year==2021&HS10=="0807190000"  // 멜론
+replace HS2024="0703101090" if year==2021&HS10=="0703101000"  // 양파
+replace HS2024="0703902000" if year==2021&HS10=="0703909000"  // 대파
+replace HS2024="0703903000" if year==2021&HS10=="0703102000"  // 쪽파
+
+expand 2, gen(expand)
+replace HS2024="0704902000_0" if HS2024=="0704902000"&expand==0
+replace HS2024="0704902000_1" if HS2024=="0704902000"&expand==1
+replace HS2024="0709601000_0" if HS2024=="0709601000"&expand==0
+replace HS2024="0709601000_1" if HS2024=="0709601000"&expand==1
+replace HS2024="0709609000_0" if HS2024=="0709609000"&expand==0
+replace HS2024="0709609000_1" if HS2024=="0709609000"&expand==1
+drop expand
+duplicates drop  
+
+merge m:1 HS2024 using possible2
+keep if _merge==3 
+drop _merge 
+keep time loc BaseTax_loc q_item
+merge 1:m loc time q_item using kati_import_price_finished_finaluse
+sort q_item loc time
+rename (중량 금액) (volume totalvalue)
+order q_item loc time BaseTax_loc volume totalvalue
+drop if _merge==2 
+drop _merge HS10
+
+replace volume=0 if volume==.
+replace totalvalue=. if totalvalue==0
+gen importprice_loc=totalvalue/volume if totalvalue!=.&volume!=0
+save Import_price, replace 
+
 // #er 
 
 
@@ -1901,31 +1985,6 @@ replace TRQ=0 if TRQD==1&treated==1
 replace TRQ=5 if TRQD==1&q_item=="참다래"
 replace TRQ=. if TRQD==1&treated==0
 save m4, replace 
-// #er 
-
-
-// #sr 수입-도매-소매가.png 그래프 생성
-* 수입-도매-소매가.png figure generation
-use m3, clear 
-local f1 = mdy(1,1,2024)
-local f2 = mdy(7,3,2023)
-keep if q_item=="파인애플"
-keep if inrange(date,22281,23831)   // 2021-01-01 ~ 2025-03-31
-twoway (tsline s_price, lcolor(red) lwidth(thick)) ///
-       (tsline d_price, lcolor(gs0) lwidth(thick) lpattern(dash)) ///
-       (tsline i_price, lcolor(gs0)), ///
-       yscale(range(0 .)) ylabel(0, add) ytitle("단위: 원/kg") xtitle("") /// 
-       legend(order(1 "소매가" 2 "도매가" 3 "수입가")) // xline(`f1') xline(`f2')
-graph export "수입-도매-소매가.png", replace width(3000)
-
-set scheme s1color
-twoway (tsline s_price, lcolor(red) lwidth(thick)) ///
-       (tsline d_price, lcolor(gs0) lwidth(thick) lpattern(dash)) ///
-       (tsline i_price, lcolor(gs0)), ///
-       yscale(range(0 .)) ylabel(0, add) ytitle("Unit: KRW/kg") xtitle("") /// 
-       legend(order(1 "Retail price" 2 "Wholesale price" 3 "Import price")) // xline(`f1') xline(`f2')
-graph export "수입-도매-소매가_eng.png", replace width(3000)   
-
 // #er 
 
 
@@ -2752,7 +2811,7 @@ foreach mm of newlist m1 m4 {
     gen i_price_missing = (missing_ratio >= 0.4)
     count if i_price_missing==1 
 
-    collapse (mean) TRQD total_import BaseTax temp_avg humidity_avg precipitation_daily sunshine_hours oil_price i_price i_price_missing, by(q_item monthly_date)
+    collapse (mean) TRQD total_import BaseTax temp_avg humidity_avg precipitation_daily sunshine_hours oil_price i_price i_price_missing s_price d_price, by(q_item monthly_date)
     rename total_import importvolume
     replace importvolume=1 if importvolume==.
     replace importvolume=1 if importvolume==0
@@ -2770,42 +2829,91 @@ foreach mm of newlist m1 m4 {
     gen TRQ=.
     replace TRQ=0 if TRQD==1&(inlist(q_item,"배추","양배추","무","양파","당근")|inlist(q_item,"체리","아보카도","망고","바나나","파인애플"))
     replace TRQ=5 if TRQD==1&(inlist(q_item,"참다래"))
+    save i`mm'_temp, replace 
+}
 
-    //! Include Tariff tax to import price
-    replace i_price=. if i_price==0
-    gen i_price_zero=1 if i_price==.  // missing not exist confirmed
-    gen i_price_without_tariff=i_price
-    replace i_price=i_price*(1+BaseTax/100) if TRQ==.
-    replace i_price=i_price*(1+TRQ/100) if TRQ!=.
+use im4_temp, clear 
+keep q_item monthly_date TRQD TRQ
+rename monthly_date time 
+keep if inrange(time, ym(2021,1) ,ym(2025,3))
+merge 1:m q_item time using Import_price, nogenerate 
+gen i_price_without_tarifftemp=importprice_loc
+replace importprice_loc=importprice_loc*(1+BaseTax_loc/100) if TRQD==0
+replace importprice_loc=importprice_loc*(1+TRQ/100) if TRQD==1
+collapse (mean) importprice_loc i_price_without_tarifftemp [pweight=volume], by(q_item time)
+save checkexist, replace 
+count if importprice_loc==.
+egen qcode=group(q_item)
+xtset qcode time, monthly
+bysort qcode: ipolate importprice_loc time, gen(i_price_new_temp) // epolate
+bysort qcode: ipolate i_price_without_tarifftemp time, gen(i_price_without_tariff) // epolate
+drop importprice_loc qcode
 
-    egen qcode=group(q_item) 
-    rename monthly_date date
+drop if inlist(q_item,"고구마","깻잎","느타리버섯","방울토마토","배","사과") ///
+    |inlist(q_item,"새송이버섯","수박","시금치","오이","토마토","파프리카") ///
+    |inlist(q_item,"풋고추","피망") 
 
+save i_price_new, replace 
+
+
+use 원달러환율, clear 
+drop date 
+save 원달러환율2, replace 
+use 농산물_소비자물가지수, clear 
+drop monthly_date
+save 농산물_소비자물가지수2, replace 
+foreach mm of newlist m1 m4 {
+    use im4_temp, clear
+    rename monthly_date time 
+    merge 1:1 q_item time using i_price_new, nogenerate
+    egen qcode=group(q_item)
+    drop i_price 
+    bysort qcode: ipolate i_price_new_temp time, gen(i_price) //  epolate
+    drop i_price_new_temp
+    rename time date 
+    //merge 1:1 q_item date using i`mm'_update, update 
+    gen year=year(dofm(date))
+    gen month=month(dofm(date))
+    merge m:1 year month using 원달러환율2, nogenerate update
+    merge m:1 year month using 농산물_소비자물가지수2, nogenerate update
+    drop if q_item==""
+    replace i_price=i_price*환율/cpi
+    replace i_price_without_tariff=i_price_without_tariff*환율/cpi
     save i`mm', replace 
 }
 
 // #er 
 
 
-// #sr   LP-DID graphs (Baseline), use STATA19
-//! Import volume
-** two treated groups; no intensity
-do LPseparateMAX_noG파양수m4
-** two treated groups; intensity
+// #sr 수입-도매-소매가.png 그래프 생성
+* 수입-도매-소매가.png figure generation
+use m3, clear 
+merge m:1 q_item year month using im4, nogenerate
+local f1 = mdy(1,1,2024)
+local f2 = mdy(7,3,2023)
+keep if q_item=="파인애플"
+keep if inrange(date,22281,23831)   // 2021-01-01 ~ 2025-03-31
+twoway (tsline s_price, lcolor(red) lwidth(thick)) ///
+       (tsline d_price, lcolor(gs0) lwidth(thick) lpattern(dash)) ///
+       (tsline i_price_without_tariff, lcolor(gs0)), ///
+       yscale(range(0 .)) ylabel(0, add) ytitle("단위: 원/kg") xtitle("") /// 
+       legend(order(1 "소매가" 2 "도매가" 3 "수입가")) // xline(`f1') xline(`f2')
+graph export "수입-도매-소매가.png", replace width(3000)
+
+set scheme s1color
+twoway (tsline s_price, lcolor(red) lwidth(thick)) ///
+       (tsline d_price, lcolor(gs0) lwidth(thick) lpattern(dash)) ///
+       (tsline i_price_without_tariff, lcolor(gs0)), ///
+       yscale(range(0 .)) ylabel(0, add) ytitle("Unit: KRW/kg") xtitle("") /// 
+       legend(order(1 "Retail price" 2 "Wholesale price" 3 "Import price")) // xline(`f1') xline(`f2')
+graph export "수입-도매-소매가_eng.png", replace width(3000)   
+
+// #er 
+
+
+// #sr   LP-DID graphs (Mechanism), use STATA19
 do LPseparateMAX_G파양수m4
-
-//! Import price
-** two treated groups; no intensity
-do LPseparateMAX_noG파양가m4
-** two treated groups; intensity
-do LPseparateMAX_G파양가m4
-** two treated groups; intensity; tariff excluded price
 do LPseparateMAX_G파양가m4_관세비포함
-
-//! Wholesale price
-** two treated groups; no intensity
-do LPseparateMAX_noG파양도m4
-** two treated groups; intensity
 do LPseparateMAX_G파양도m4
 
 

@@ -21,7 +21,7 @@ drop if i_price_missing==1
 xtset qcode date, daily
 
 * 공통 설정
-local Hpre  = 16
+local Hpre  = 15
 local Hpost = 8
 
 * 안전: 열려있는 post 핸들 정리

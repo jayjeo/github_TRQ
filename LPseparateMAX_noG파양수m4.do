@@ -5,7 +5,7 @@ cd "${path}"
 //!================================================================
 //! STATA 19
 ************************************************
-** LP‑DiD: 두 그룹 분리 추정 + No Intensity
+** LP‑DiD: 두 그룹 분리 추정 + Intensity
 ************************************************
 clear all
 set more off
@@ -17,7 +17,7 @@ if _rc ssc install rangestat, replace
 
 * 데이터 로드
 use im4, clear
-xtset qcode date, monthly
+xtset qcode date, daily
 
 * 공통 설정
 local Hpre  = 16
@@ -37,7 +37,7 @@ save "`base'", replace
 capture program drop _lp_common_prep
 program define _lp_common_prep
     args groupnum
-    tsset qcode date, monthly
+    tsset qcode date, daily
 
     local group1 `" "배추","양배추","무","양파","당근" "'
     local group2 `" "체리","참다래","아보카도","망고","바나나","파인애플" "'
@@ -63,7 +63,8 @@ program define _lp_common_prep
 
     * 로그 변환
     replace importvolume = ln(importvolume)
-    
+    replace i_price = ln(i_price)
+
     * 기후변수 rangestat 
     foreach var of varlist temp_avg humidity_avg precipitation_daily sunshine_hours {
         rangestat (mean) `var', interval(date -3 0) by(qcode)
@@ -113,20 +114,22 @@ postfile `post1' int h long N_all1 N_T1 N_ctrl1 ///
 forvalues h = -`Hpre'/`Hpost' {
     di as txt "===== Group 1  //  h = `h' ====="
     use "`g1base'", clear
-    tsset qcode date, monthly
+    tsset qcode date, daily
 
-    tempvar ev dY tmax
+    tempvar ev dY dP tmax
     gen byte `ev' = (L.TRQD==0 & TRQD==1)
 
     * 좌변 Δ^h y := y_{t+h} - y_{t-1}
     if `h'==0 {
         gen double `dY' = importvolume - L.importvolume
+        gen double `dP' = i_price - L.i_price
 
         * clean control (h=0): t 이전 미처리 & t 시점 미처리
         local ctrlcond "prev_treated==0 & TRQD==0"
     }
     else if `h'>0 {
         gen double `dY' = F`h'.importvolume - L.importvolume
+        gen double `dP' = F`h'.i_price - L.i_price
 
         * [t+1, t+h] 구간에 처리 발생 여부 확인: rangestat으로 max(TRQD) 계산
         * (구간에 1이 있으면 max=1 → control에서 배제)
@@ -155,6 +158,7 @@ forvalues h = -`Hpre'/`Hpost' {
     else {
         local k = -`h'
         gen double `dY' = L`k'.importvolume - L.importvolume
+        gen double `dP' = L`k'.i_price - L.i_price
 
         * clean control (h<0, 요청사항 엄격 적용):
         * not‑yet‑treated, 즉 향후에 처리될 예정이든 말든 상관없음. never treated는 선택적(보다 엄격) 옵션일 뿐, 표준은 not‑yet입니다.
@@ -165,6 +169,7 @@ forvalues h = -`Hpre'/`Hpost' {
     * 클린 컨트롤: 신규처리 vs (위에서 정의한) clean control
     keep if ((`ev'==1 & d==1) | (`ctrlcond'))
     drop if missing(`dY')
+    drop if missing(`dP')
 
     count
     local Nall = r(N)
@@ -178,7 +183,7 @@ forvalues h = -`Hpre'/`Hpost' {
     }
     else {
         gen double shock = `ev'*(d==1)
-        quietly reg `dY' shock i.date BaseTax i.qcode#c.oil_price i.qcode#c.temp_avg i.qcode#c.humidity_avg i.qcode#c.precipitation_daily i.qcode#c.sunshine_hours i.qcode#c.L12.temp_avg i.qcode#c.L12.humidity_avg i.qcode#c.L12.precipitation_daily i.qcode#c.L12.sunshine_hours, vce(cluster qcode)   
+        quietly reg `dY' shock `dP' i.date BaseTax i.qcode#c.oil_price i.qcode#c.temp_avg i.qcode#c.humidity_avg i.qcode#c.precipitation_daily i.qcode#c.sunshine_hours i.qcode#c.L12.temp_avg i.qcode#c.L12.humidity_avg i.qcode#c.L12.precipitation_daily i.qcode#c.L12.sunshine_hours, vce(cluster qcode)   
         post `post1' (`h') (`Nall') (`NT') (`Nc') ///
             (_b[shock]) (_b[shock]-1.959964*_se[shock]) (_b[shock]+1.959964*_se[shock])
     }
@@ -201,20 +206,22 @@ postfile `post2' int h long N_all2 N_T2 N_ctrl2 ///
 forvalues h = -`Hpre'/`Hpost' {
     di as txt "===== Group 2  //  h = `h' ====="
     use "`g2base'", clear
-    tsset qcode date, monthly
+    tsset qcode date, daily
 
-    tempvar ev dY tmax
+    tempvar ev dY dP tmax
     gen byte `ev' = (L.TRQD==0 & TRQD==1)
 
     * 좌변 Δ^h y := y_{t+h} - y_{t-1}
     if `h'==0 {
         gen double `dY' = importvolume - L.importvolume
+        gen double `dP' = i_price - L.i_price
 
         * clean control (h=0): t 이전 미처리 & t 시점 미처리
         local ctrlcond "prev_treated==0 & TRQD==0"
     }
     else if `h'>0 {
         gen double `dY' = F`h'.importvolume - L.importvolume
+        gen double `dP' = F`h'.i_price - L.i_price
 
         * [t+1, t+h] 구간에 처리 발생 여부 확인: rangestat으로 max(TRQD) 계산
         * (구간에 1이 있으면 max=1 → control에서 배제)
@@ -243,6 +250,7 @@ forvalues h = -`Hpre'/`Hpost' {
     else {
         local k = -`h'
         gen double `dY' = L`k'.importvolume - L.importvolume
+        gen double `dP' = L`k'.i_price - L.i_price
 
         * clean control (h<0, 요청사항 엄격 적용):
         * not‑yet‑treated, 즉 향후에 처리될 예정이든 말든 상관없음. never treated는 선택적(보다 엄격) 옵션일 뿐, 표준은 not‑yet입니다.
@@ -253,6 +261,7 @@ forvalues h = -`Hpre'/`Hpost' {
     * 클린 컨트롤: 신규처리 vs (위에서 정의한) clean control
     keep if ((`ev'==1 & d==1) | (`ctrlcond'))
     drop if missing(`dY')
+    drop if missing(`dP')
 
     count
     local Nall = r(N)
@@ -266,7 +275,7 @@ forvalues h = -`Hpre'/`Hpost' {
     }
     else {
         gen double shock = `ev'*(d==1)
-        quietly reg `dY' shock i.date BaseTax i.qcode#c.oil_price i.qcode#c.temp_avg i.qcode#c.humidity_avg i.qcode#c.precipitation_daily i.qcode#c.sunshine_hours i.qcode#c.L12.temp_avg i.qcode#c.L12.humidity_avg i.qcode#c.L12.precipitation_daily i.qcode#c.L12.sunshine_hours, vce(cluster qcode)   
+        quietly reg `dY' shock `dP' i.date BaseTax i.qcode#c.oil_price i.qcode#c.temp_avg i.qcode#c.humidity_avg i.qcode#c.precipitation_daily i.qcode#c.sunshine_hours i.qcode#c.L12.temp_avg i.qcode#c.L12.humidity_avg i.qcode#c.L12.precipitation_daily i.qcode#c.L12.sunshine_hours, vce(cluster qcode)   
         post `post2' (`h') (`Nall') (`NT') (`Nc') ///
             (_b[shock]) (_b[shock]-1.959964*_se[shock]) (_b[shock]+1.959964*_se[shock])
     }
