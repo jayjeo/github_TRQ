@@ -1,6 +1,6 @@
 # Replication package
 
-**The Causal Effects of Korea's Quota Tariff Policy on Agricultural Product Retail Prices**
+**(The Causal Effects of Korea's Quota Tariff Policy on Agricultural Product Retail Prices](https://jayjeo.github.io/The%20Causal%20Effects%20of%20Korea's%20Quota%20Tariff%20Policy%20on%20Agricultural%20Product%20Retail%20Prices.pdf)**
 Deokjae Jeong, Youngmi Kim
 Korea Customs and Trade Development Institute
 
@@ -19,7 +19,7 @@ download link instead. Download them and place them in this folder before runnin
 | `도매가격(전국도매시장).txt` | ~420MB | raw wholesale-price source (required) |
 | `d1.dta` | ~666MB | Stata conversion of the file above (optional — `main.do` rebuilds it from the txt) |
 
-> [Download link](https://jayjeo.github.io/The_Causal_Effects_of_Tariff_Rate_Quota_Policies_on_Agricultural_Product_Retail_Prices.pdf)**
+> [Download link](https://HOME-7k2m.synology.me:5001/d/s/19Gm5dB9R4UDeqdegnfxtKcibTBVczKO/qtqOLG9mPL3acYvTXP0idU3F8Bvndcqb-57MA3yOlYw0)
 
 ## Requirements
 
