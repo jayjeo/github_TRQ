@@ -1,8 +1,8 @@
 # Replication package
 
 **[The Causal Effects of Korea's Quota Tariff Policy on Agricultural Product Retail Prices](https://jayjeo.github.io/The%20Causal%20Effects%20of%20Korea's%20Quota%20Tariff%20Policy%20on%20Agricultural%20Product%20Retail%20Prices.pdf)**
-Deokjae Jeong, Youngmi Kim
-Korea Customs and Trade Development Institute
+- Deokjae Jeong, Youngmi Kim
+- Korea Customs and Trade Development Institute
 
 This folder contains all code and data needed to reproduce every table and figure in the paper.
 **Start by reading `main.do`** — it is the single entry point. Its first block
