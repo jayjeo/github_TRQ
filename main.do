@@ -2054,6 +2054,7 @@ graph export 계절조정_eng.png, replace width(3000)
 
 
 // #sr After checking the TRQ quota thresholds, reset the end dates
+* This block calls the custom command check_TRQquota (check_TRQquota.ado, shipped in this folder; found via the adopath line at the top).
 check_TRQquota 망고
 local range="inrange(mtime,ym(2022,11),ym(2022,12))"
 local item="망고"
@@ -2958,46 +2959,6 @@ di as res "SUMSTAT_DONE"
 // #er
 
 
-// #sr Create the m5 dataset (robustness variant)
-
-** Create the m5 dataset
-/* Why m5 exists
-The m1 dataset removes too much of the early-period (2022-2023) TRQ status relative to m4 (the actual policy),
-so spells that were actually treated can be misread as clean controls in the LP-DiD analysis.
-Manual code was used to exclude such controls.
-m1 also drops early-period treatment that actually existed, so those spells are never used as treated.
-m5 fixes all of the above and allows a more reasonable robustness check:
-1. Early-period (2022-2023) TRQ status is kept identical to m4 (the policy as it actually was).
-2. In m4, frequent short policy interruptions in 2024-2025 keep some spells from counting as treated; in m5 those short gaps are manually treated as continuous.
-*/
-use m4, clear
-replace TRQD=1 if q_item=="배추"&inrange(date,mdy(1,1,2025),mdy(1,23,2025))
-replace TRQD=1 if q_item=="양배추"&inrange(date,mdy(11,1,2024),mdy(1,23,2025))
-replace TRQD=1 if q_item=="양배추"&inrange(date,mdy(10,13,2024),mdy(10,31,2024))
-replace TRQD=1 if q_item=="당근"&inrange(date,mdy(10,1,2024),mdy(10,28,2024))
-replace TRQD=1 if q_item=="당근"&inrange(date,mdy(9,7,2024),mdy(9,30,2024))
-replace TRQD=1 if q_item=="당근"&inrange(date,mdy(12,19,2024),mdy(12,31,2024))
-replace TRQD=1 if q_item=="대파"&inrange(date,mdy(1,1,2024),mdy(1,18,2024))
-replace TRQD=1 if q_item=="망고"&inrange(date,mdy(1,1,2024),mdy(1,18,2024))  
-replace TRQD=1 if q_item=="망고"&inrange(date,mdy(1,1,2025),mdy(1,23,2025)) 
-replace TRQD=1 if q_item=="바나나"&inrange(date,mdy(1,1,2024),mdy(1,18,2024)) 
-replace TRQD=1 if q_item=="바나나"&inrange(date,mdy(1,1,2025),mdy(1,23,2025)) 
-replace TRQD=1 if q_item=="아보카도"&inrange(date,mdy(1,1,2025),mdy(1,23,2025)) 
-replace TRQD=1 if q_item=="파인애플"&inrange(date,mdy(10,9,2023),mdy(12,31,2023))
-replace TRQD=1 if q_item=="파인애플"&inrange(date,mdy(1,1,2025),mdy(1,23,2025))
-
-drop treated TRQ
-gen treated=0
-replace treated=1 if inlist(q_item,"배추","양배추","무","당근","양파","대파")|inlist(q_item,"망고","참다래","바나나","아보카도","파인애플","포도")
-gen TRQ=.
-replace TRQ=0 if TRQD==1 & treated==1   //! items other than kiwifruit, grape, and onion carry a 0% rate under the quota tariff
-replace TRQ=5 if TRQD==1 & q_item=="참다래"
-//replace TRQ=5 if TRQD==1 & q_item=="포도"
-replace TRQ=10 if TRQD==1 & q_item=="양파"
-replace TRQ=. if treated==0
-save m5, replace
-
-// #er 
 
 
 // #sr Correlation between government releases and Quota Tariff status
@@ -3172,13 +3133,11 @@ export delimited q_item date release rel_any_now WTO_increase wto_now ///
 
 
 // #sr Export input data (t3.dta) for Paper Table 1 (p.10): Quota Tariff Treatment Status
-** use m5, clear   // optional alternative
 use m4, clear  
 keep q_item date TRQD
 keep if inlist(q_item,"배추","양배추","무","당근","양파","대파")|inlist(q_item,"망고","참다래","바나나","아보카도","파인애플")
 save t1, replace 
 
-** use m5, clear   // optional alternative
 use m4, clear 
 keep if inlist(q_item,"배추","양배추","무","당근","양파","대파")|inlist(q_item,"망고","참다래","바나나","아보카도","파인애플")
 //keep if date <= mdy(3,31,2025)
@@ -3245,13 +3204,18 @@ save t3, replace
 
 // #sr How to generate Paper Figures 5-8 (pp.35-39): LP-DiD graphs
 * Each figure is produced by one do file shipped with this package (set the global path first):
-*   Figure 5 (p.35): LPseparate_noGm4_CV1(95)ct.do
-*   Figure 6 (p.36): LPseparate_noGm4_CV1(95)ct_impulse.do
-*   Figure 7 (p.37): LPseparate_Gm4_CV1(95)ct.do
-*   Figure 8 (p.39): LPseparate_Gm4_CV1(95)ct_impulse.do
+* (Each run takes ~12 hours. Comment out the four do lines below to skip them on a quick pass.)
+*   Figure 5 (p.35): 
+do "LPseparate_noGm4_CV1(95)ct"
+*   Figure 6 (p.36): 
+do "LPseparate_noGm4_CV1(95)ct_impulse"
+*   Figure 7 (p.37): 
+do "LPseparate_Gm4_CV1(95)ct"
+*   Figure 8 (p.39): 
+do "LPseparate_Gm4_CV1(95)ct_impulse"
 * Each run takes roughly 12 hours and exports the PNG plus a *_res.csv holding the estimates
-* for every horizon — these CSVs are the "underlying estimates retained in the replication
-* files" mentioned in the paper, and they ship with this package.
+* for every horizon — these CSVs are the "underlying estimates retained in the replication files"
+* mentioned in the paper, and they ship with this package.
 // #er
 
 
