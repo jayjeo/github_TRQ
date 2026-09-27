@@ -1,60 +1,173 @@
 # Replication package
 
-**[The Causal Effects of Korea's Quota Tariff Policy on Agricultural Product Retail Prices](https://jayjeo.github.io/The%20Causal%20Effects%20of%20Korea's%20Quota%20Tariff%20Policy%20on%20Agricultural%20Product%20Retail%20Prices.pdf)**
+**The Causal Effects of Korea's Quota Tariff Policy on Agricultural Product Retail Prices**
 - Deokjae Jeong, Youngmi Kim
 - Korea Customs and Trade Development Institute
-- [Korean-language verion, Unpublished Institutional Working Paper, Not peer-reviewed](https://jayjeo.github.io/할당관세_정책이_농산물_가격에_미치는_인과적_영향_preprint.pdf)
+- [Korean-language version, Unpublished Institutional Working Paper, Not peer-reviewed](https://jayjeo.github.io/할당관세_정책이_농산물_가격에_미치는_인과적_영향_preprint.pdf)
 
-This GitHub repository contains all code and data needed to reproduce every table and figure in the paper. Following the instructions in **`main.do`** is sufficient to generate all tables and figures, as well as the CSV files referenced in the paper. Most of the work in `main.do` is carried out in STATA; a few steps rely on Python or R, and instructions for those steps are provided as comments within `main.do`.
+All code and data needed to reproduce every table and figure in the paper are available at [this link](https://kctdi-econ.synology.me:5001/d/s/1A3IzYxSSBKdUsfpjei9vaI7q2PtOWGu/LfwRaiIo-6d1RlepJHcvb8FrrtytByOH-j74AnPFKiQ0). Following the instructions in **`main.do`** and the run orders given below for the scripts in `SUTVA_exclusion/`, `FruitVeg_difference/`, `Import_dependence/` and `Identification_robustness/` is sufficient to generate all tables and figures, as well as the CSV files referenced in the paper. Most of the work in `main.do` is carried out in Stata; a few steps rely on Python or R, and instructions for those steps are provided as comments within `main.do`.
 
-## Large files not stored on GitHub
+## Large files
 
-GitHub rejects files over 100MB, so the two files below are provided through an external
-download link instead. Download them and place them in this folder before running `main.do`.
+The two files below are larger than 100MB and are kept in the folder `Big sized file/`.
+Move them to the top folder before running `main.do`.
 
 | File | Size | Note |
 |---|---|---|
 | `도매가격(전국도매시장).txt` | ~420MB | raw wholesale-price source (required) |
-| `d1.dta` | ~666MB | Stata conversion of the file above (optional — `main.do` rebuilds it from the txt) |
-
-> [Download link](https://HOME-7k2m.synology.me:5001/d/s/19Gm5dB9R4UDeqdegnfxtKcibTBVczKO/qtqOLG9mPL3acYvTXP0idU3F8Bvndcqb-57MA3yOlYw0)
+| `d1.dta` | ~666MB | Stata conversion of the file above (optional; `main.do` rebuilds it from the txt) |
 
 ## Requirements
 
 | Tool | Version used | Notes |
 |---|---|---|
-| Stata | 19 (StataNow, MP) | community packages: `rangestat`, `boottest` (auto-installed by the do files via `ssc install` when missing); the custom command `check_TRQquota.ado` ships in this folder and is found through the `adopath` line in `main.do` |
-| Python | 3.11 | `pandas`, `numpy`, `matplotlib`, `Pillow` (used only for Paper Table 1 and Paper Table 4) |
+| Stata | 19 (StataNow, MP) | community packages: `rangestat`, `boottest` (auto-installed by the do files via `ssc install` when missing); the custom command `check_TRQquota.ado` ships in this folder and is found through the `adopath` line in `main.do`. `AshenfelterDip/AD_stackfig2.do` and `Identification_robustness/figure2_band.do` join the two panels of figures 1 and 2 through Stata's `python` command, so Stata must be linked (`set python_exec`) to a Python installation with `Pillow`; the panels themselves are drawn without Python |
+| Python | 3.11 | `pandas`, `numpy`, `matplotlib`, `Pillow` (tables 1-3 and figures 1-2 of the paper); `scipy` for table 3 (`_tabh_results/generate_tables.py`) and for the AIDS, `SUTVA_exclusion/`, `FruitVeg_difference/` and `Identification_robustness/` scripts, and `openpyxl` for the `.xlsx` inputs of `FruitVeg_difference/` and `Import_dependence/`. The AIDS results were produced with Python 3.11.8, pandas 3.0.3, numpy 2.4.4 and scipy 1.17.0 |
 | R | 4.x (optional) | Only needed to re-run the seasonal-adjustment step; its three outputs (`q_all_*_STL_result.csv`) are already included, so `main.do` runs end-to-end without R |
 
 ## What produces what
 
 | Paper item | Produced by |
 |---|---|
-| Table 1 (p.10, treatment-status image) | `main.do` (t3.dta) → `create_tariff_table_largefont_eng.py` |
-| Table 2 (p.11, pineapple detail) | values hard-coded and verified in `main.do` (threshold-check block) |
-| Table 3 (p.29, treatment intensity) | `_tabh_results` pipeline (`intensity_by_item.csv`) |
-| Table 4 (p.41, LP-DiD selected horizons) | `_tabh_results` pipeline (see the recipe block in `main.do`) |
-| Tables 5–7 (pp.53–56, summary statistics) | `main.do` (summary-statistics block; fragments `sumstat_T*_eng.tex`) |
-| Table 8 (p.58, onset/washout classification) | hand-made table — not generated by code; its rules (30-day bridging, 120-day washout) are implemented in the `LPseparate_*.do` files |
-| Figures 1–2 (pp.14, 16) | `main.do` |
-| Figures 3–4 (pp.33–34, pre-designation dynamics) | `AshenfelterDip/` pipeline (see the recipe block in `main.do`) |
-| Figures 5–8 (pp.35–39, LP-DiD graphs) | the four `LPseparate_*_CV1(95)ct*.do` files (≈12h each); their `*_res.csv` files hold the full-horizon estimates referenced in the paper and are included |
+| Table 1 (Quota Tariff treatment status by product) | `main.do` (t3.dta) -> `create_tariff_table_largefont_eng.py` |
+| Table 2 (treatment intensity) | values entered by hand from `intensity_by_item.csv`, which `_tabh_results/finalize.py` writes |
+| Table 3 (LP-DiD estimates at selected horizons) | `_tabh_results` pipeline (see the recipe block in `main.do`) |
+| Table 4 (summary of the identification robustness checks) | `Identification_robustness/robustness_summary_table.py` (see "Identification robustness" below) |
+| Figure 1 (retail prices around Quota Tariff onsets) | `AshenfelterDip/` pipeline (see the recipe block in `main.do`) |
+| Figure 2 (pre-onset coefficients with and without climate covariates) | `AshenfelterDip/` pipeline for the coefficients, then `Identification_robustness/pretrend_tests.py` and `Identification_robustness/figure2_band.do` for the simultaneous band, the joint-test p-values and the figure |
+| Figures 3-6 (LP-DiD graphs) | the four `LPseparate_*_CV1(95)ct*.do` files (about 12 hours each); their `*_res.csv` files hold the full-horizon estimates referenced in the paper and are included |
+| Tables S1-S3 (summary statistics) | `main.do` (summary-statistics block; fragments `sumstat_T*_eng.tex`) |
+| Table S4 (pre-treatment import dependence) | `Import_dependence/` (see "Pre-treatment import dependence" below) |
+| Table S5 (pineapple designation detail) | values hard-coded and verified in `main.do` (threshold-check block) |
+| Table S6 (onset and washout classification) | a hand-made table, not generated by code; its rules (30-day bridging, 120-day washout) are implemented in the `LPseparate_*.do` files |
+| Tables S7 and S8 (joint tests of the pre-onset coefficients; treatment intensity without the product with the largest tariff reduction) | `Identification_robustness/` (see "Identification robustness" below) |
+| Tables S9-S12 | `FruitVeg_difference/` (see "Difference between fruit and vegetable estimates" below) |
+| Tables S13 and S14 (longer washout periods and first onsets; fixed set of treated onsets) | `Identification_robustness/` |
+| Table S15 (candidate substitutes and complements removed from the comparison pool) | `SUTVA_exclusion/` (see "Comparison pool without candidate substitutes and complements" below) |
+| Table S16 (import-dependent comparison products) | `Identification_robustness/` |
+| Figures S1-S2 (applied tariff rates; seasonal adjustment) | `main.do` |
 | Correlations cited in the "Confounding Effects" section | `main.do` (`corr_confounders_res.csv`, `corr_onset_coincide.csv`) |
 
 ## Folder layout
 
-- `main.do` — master script (read this first)
-- `LPseparate_{G,noG}m4_CV1(95)ct{,_impulse}.do` + `*_res.csv` — LP-DiD figures and estimates
-- `m4.dta` — the final analysis dataset
-- `_tabh_results/` — Table 4 pipeline (`make_variants.py` → variant do files → `finalize.py` → `generate_tables.py`)
-- `AshenfelterDip/` — Figures 3–4 pipeline
-- `create_tariff_table_largefont_eng.py` — Table 1 image renderer
+- `main.do`: master script (read this first)
+- `LPseparate_{G,noG}m4_CV1(95)ct{,_impulse}.do` + `*_res.csv`: LP-DiD figures and estimates
+- `m4.dta`: the final analysis dataset
+- `_tabh_results/`: pipeline for tables 2 and 3 (`make_variants.py` -> variant do files -> `finalize.py` -> `generate_tables.py`)
+- `AshenfelterDip/`: pipeline for figure 1 and the pre-onset coefficients of figure 2
+- `Identification_robustness/`: table 4, the simultaneous band and joint tests of figure 2, and the other identification robustness checks
+- `Import_dependence/`: pre-treatment import dependence of the 41 products
+- `SUTVA_exclusion/`: estimates with candidate substitutes and complements removed from the comparison pool
+- `FruitVeg_difference/`: appendix tables on the difference between the fruit and vegetable estimates, and the forgone tariff revenue
+- `AIDS_*` files, `AIDS_main/`, `AIDS_fgnls2/`: one-step AIDS estimation
+- `create_tariff_table_largefont_eng.py`: renders the table 1 image
 - `WTO_TRQ_gen.do`, `check_TRQquota.ado`, `R_*.R`, raw data files (`*.xlsx`, `*.txt`, `*.csv`, `*.dta`)
+- `Big sized file/`: the two raw files larger than 100MB (see "Large files" above)
 
-## Note on one modified file
+## Paths and checks in `_tabh_results/`
 
-`_tabh_results/finalize.py` in this package differs from the original in exactly one respect:
-its two hard-coded paths were replaced with environment-variable lookups
-(`GRAPE_OUT`, defaulting to `C:\build\tabh`, and `GRAPE_SRC`, defaulting to this package's
-root folder) so the pipeline runs on any machine. No numerical logic was changed.
+The scripts of the table 3 pipeline read their folders from environment variables, so the pipeline runs on any machine. `GRAPE_SRC` (default: this package's root folder) holds the `LPseparate_*.do` files, from which `make_variants.py` writes the variant do files, and the `LPseparate_*_res.csv` files, against which `finalize.py` checks the variant regressions. `GRAPE_OUT` (default `C:\build\tabh`) is the working folder: it receives the variant do files and their output, and `finalize.py` writes `table_regressions.csv` and `intensity_by_item.csv` there. `generate_tables.py` reads `table_regressions.csv` from `GRAPE_OUT` and writes `QuotaTariff_table_eng.tex` to `GRAPE_TABLE_OUT` (default: `GRAPE_OUT`). `finalize.py` checks all 12 cells against the `LPseparate_*_res.csv` files: the coefficients must agree to 1e-10, the standard errors to a relative difference of 1e-6 (those files store the bounds of the confidence intervals in single precision), and N, the degrees of freedom and the number of clusters exactly; any failure stops the pipeline. `generate_tables.py` sets the significance stars from p-values of the t distribution with degrees of freedom equal to the number of product clusters minus one, as stated in the table note.
+
+## One-step AIDS estimation
+
+The almost ideal demand system (AIDS) for 40 products is estimated in Python. The commands are listed in the last block of `main.do`.
+
+| File | Role |
+|---|---|
+| `AIDS_estimate.py` | Estimates the 40-product AIDS in one step (858 parameters) with the same estimator as Stata's `demandsys aids`: NLS, then FGNLS iterated to convergence. Writes `eb.csv`, `eV.csv`, `eSigma.csv`, `est_info.csv`, `iterlog.txt` and the elasticity matrices `elas_*.csv` (raw standard errors) to the `--out` folder |
+| `AIDS_elasticities.py` | Reads the output of the two runs below. Writes `elasticities_long.csv` (raw and adjusted standard errors, Benjamini-Hochberg q-values), `hicks_40x40.csv` and `marshall_40x40.csv` into each folder, and the cells flagged under rules R1-R3 (defined below the table) into `AIDS_main/exclusion_candidates.csv` and `AIDS_main/exclusion_summary.txt` |
+| `AIDS_expected_pairs.py` | Checks the signs of the pairs in `AIDS_expected_pairs.csv` against both runs. A pair counts as significant when q <= 0.10 in both runs (Benjamini-Hochberg over the 1,560 off-diagonal cells, taking the larger q of the pair's two directions) and its sign is the same in both runs. Writes `AIDS_main/expected_pairs_check.csv` and `AIDS_main/expected_pairs_summary.txt` |
+| `AIDS_expected_pairs.csv` | The 30 product pairs expected to be substitutes (16) or complements (14) on the basis of how the products are cooked and purchased, selected without reference to the estimates |
+| `AIDS_main/`, `AIDS_fgnls2/` | Output of the two runs: `AIDS_main/` with the default options (FGNLS iterated to convergence), and `AIDS_fgnls2/` with a looser tolerance and FGNLS stopped after two iterations (`--eps 1e-3 --ifgnlseps 1e30`) |
+| `AIDS_daily_panel_shift.dta` | Input: 1,065 days, 40 budget shares, 40 prices and total expenditure. Ships with the package |
+| `AIDS_build_daily_panel.py` | Optional step that rebuilds the input from `소비트렌드.txt`, `m4.dta` and `AIDS_item_map_40.csv` |
+| `AIDS_item_map_40.csv` | Item order (w01..w40 / p01..p40), ever-treated flag, the three pairs of closely related products (napa cabbage and young napa cabbage, green onion and scallion, radish and young summer radish) and the estimation group of the ever-treated products (1 = vegetables, 2 = fruits) |
+| `AIDS_weekly_panel_shift.csv`, `AIDS_seasonal_factors_shift.csv`, `AIDS_daily_panel_shift.csv`, `AIDS_panel_build_log_shift.txt` | Intermediate files and build log written by `AIDS_build_daily_panel.py` |
+| `AIDS_demandsys.do` | The same model in Stata (`demandsys aids`). Not run by `main.do`; see ALTERNATIVES USING STATA in the last block of `main.do` |
+
+Standard errors: the daily panel interpolates 153 weekly observations to 1,065 days, so the adjusted standard error is the raw one times sqrt(1065/153). In `exclusion_candidates.csv` the q-values are Benjamini-Hochberg adjusted separately over the 319 cells that pair a never-treated product with an ever-treated product and over the 50 cells that pair two ever-treated products of the same group; because vegetables and fruits are estimated in separate LP-DiD regressions, the 60 cells that pair an ever-treated vegetable with an ever-treated fruit are not used. The flags are defined as follows, where e is the elasticity of the cell. R1: q <= 0.10. R2: R1 and |e| >= 0.10. R3: R1, and the `AIDS_fgnls2` run also gives q <= 0.10 with the same sign.
+
+`main.do` merges `AIDS_results.dta`, which holds two-stage AIDS results; the one-step results above are not used by `main.do`.
+
+## Comparison pool without candidate substitutes and complements
+
+The folder `SUTVA_exclusion/` produces the appendix table "Estimates with Candidate Substitutes and Complements Removed from the Comparison Pool". The scripts use Python with `pandas`, `numpy` and `scipy` and find their inputs relative to their own folder. Run order: `sutva_pcse_check.py`, `sutva_exclusion_lists.py`, `sutva_exclusion_lpdid.py`. `main.do` does not run them.
+
+| File | Role |
+|---|---|
+| `SUTVA_exclusion/sutva_pcse_check.py` | Re-estimates the one-step AIDS by NLS (the NLS stage of `AIDS_estimate.py`) with a sandwich covariance of the panel-corrected standard error (PCSE) type, and computes Hicksian elasticities, adjusted standard errors, p-values and Benjamini-Hochberg q-values for the 369 cells of `AIDS_main/exclusion_candidates.csv` (the 319 and 50 cells described above). Reads `AIDS_daily_panel_shift.dta` and `AIDS_item_map_40.csv`. Writes `sutva_pcse_cells.csv` |
+| `SUTVA_exclusion/sutva_exclusion_lists.py` | Builds the exclusion list of each ever-treated product k. Product c enters the list of k when q <= 0.01 in `AIDS_main`, q <= 0.10 with the same sign in `AIDS_fgnls2`, and q <= 0.10 with the same sign in `sutva_pcse_cells.csv`. Variants: `sub` (positive Hicksian elasticity in `AIDS_main`), `comp` (negative) and `both` (either sign). For napa cabbage, green onion and radish, the exclusion list includes the closely related product in `AIDS_item_map_40.csv` (young napa cabbage, scallion and young summer radish, respectively) in all three variants, whatever the sign of its elasticity; in the output, `is_closely_related` marks these pairs, and `source` is `closely_related` for the rows that enter a list only for this reason. Writes `sutva_exclusion_lists_built.csv` (47 rows: 22 `both`, 12 `sub`, 13 `comp`), which `sutva_exclusion_lpdid.py` reads |
+| `SUTVA_exclusion/table3_reference.csv` | Coefficients, standard errors and N of the 12 main-text LP-DiD estimates at h = 150 and 250 (the table of estimates at selected horizons), from the `LPseparate_*.do` regressions. The coefficients equal those in the four `LPseparate_*_res.csv` files. The file is a copy of the `table_regressions.csv` written by the `_tabh_results` pipeline, and no script in the package overwrites it; the scripts in `Identification_robustness/` read it as well |
+| `SUTVA_exclusion/sutva_exclusion_lpdid.py` | LP-DiD in Python with the specification of the `LPseparate_*.do` files. It first checks that, without exclusion, it reproduces the 12 estimates in `table3_reference.csv`. It then drops a control observation of product c on comparison date t from the horizon-h regression if an ever-treated product whose list contains c has the Quota Tariff in force (after the 30-day bridging) on any day of [t-120, t+h]. Young napa cabbage, scallion and young summer radish are dropped from all vegetable regressions of the three variants. Writes the three files below |
+| `SUTVA_exclusion/sutva_exclusion_counts.csv` | Smallest number of control products on a comparison date, variant `both`, at every horizon (h = 0-150 in the persistent-treatment specification, h = 0-250 in the impulse-response specification) |
+| `SUTVA_exclusion/sutva_exclusion_cells.csv` | The 36 estimates (3 variants x 12 cells) with N, number of clusters and the smallest number of control products |
+| `SUTVA_exclusion/sutva_exclusion_table.tex` | The appendix table |
+
+The standard errors of the vegetable regressions vary with the number of BLAS threads from the seventh significant digit onward. `sutva_exclusion_lpdid.py` sets `OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS` and `MKL_NUM_THREADS` to 4; the table, reported to three decimal places, is identical with 4 and 16 threads.
+
+## Difference between fruit and vegetable estimates
+
+The folder `FruitVeg_difference/` produces four appendix tables: "Direct Test of the Difference between Fruit and Vegetable Estimates"; "Checks of the Fruit Estimates against Alternative Explanations"; "Policy Exposure and the Price Change Predicted from Pre-Designation Information"; and "Varieties Measured by the Retail Price Series of the Ever-Treated Vegetables and Tropical Fruits". `forgone_revenue.py` also estimates the tariff revenue forgone under the Quota Tariff designations; the totals are cited in the main text. The Python scripts use `pandas`, `numpy` and `scipy`, plus `openpyxl` to read the `.xlsx` inputs, and find their inputs relative to their own folder. `fruitveg_stacked_difference.do` needs Stata with `rangestat` (installed by the do file via `ssc install` when missing) and must be run with `FruitVeg_difference/` as the working directory. Run order: `fruitveg_stacked_difference.do`, then `fruitveg_difference_table.py`; `fruit_alternatives.py`, `policy_exposure.py` and `retail_varieties.py` depend neither on these two nor on each other. `forgone_revenue.py` reads `policy_exposure_events.csv`, so run it after `policy_exposure.py`. The Stata output `fruitveg_stacked_difference.csv` is included, so `fruitveg_difference_table.py` also runs without Stata. `main.do` does not run any of these scripts.
+
+| File | Role |
+|---|---|
+| `FruitVeg_difference/fruitveg_stacked_difference.do` | Runs the vegetable and fruit LP-DiD regressions of the `LPseparate_*.do` files (same preprocessing and covariates) for treatment status and intensity at the main-text horizons: persistent treatment at h = 150, impulse response at h = 150 and 250. Stacks the two groups into one fully interacted regression with group-specific calendar-day effects and standard errors clustered by product, stops if the stacked estimates differ from the separate ones, and tests the difference (fruits minus vegetables) with `lincom`, using degrees of freedom equal to the number of clusters minus one. Reads `m4.dta`. Writes `fruitveg_stacked_difference.csv` |
+| `FruitVeg_difference/fruitveg_stacked_difference.csv` | The six rows written by the do file: vegetable and fruit coefficients and standard errors, the difference with its standard error, t statistic, p-value and 95% confidence interval, N and the number of clusters |
+| `FruitVeg_difference/fruitveg_stacked_difference.log` | Stata log of the batch run of the do file |
+| `FruitVeg_difference/fruitveg_difference_table.py` | Reads `fruitveg_stacked_difference.csv`, recomputes the 95% confidence intervals and p-values from the t distribution with degrees of freedom equal to the number of clusters minus one, checks them against the `lincom` results, and writes `fruitveg_difference_table.tex` |
+| `FruitVeg_difference/fruitveg_difference_table.tex` | The appendix table "Direct Test of the Difference between Fruit and Vegetable Estimates" |
+| `FruitVeg_difference/fruit_alternatives.py` | LP-DiD in Python for the fruit group with the specification of the `LPseparate_*.do` files (the fruit regressions have no climate covariates). Re-estimates the four fruit coefficients of the main-text table of estimates at selected horizons (treatment status and intensity; persistent treatment at h = 150, impulse response at h = 250) with: product fixed effects and product-specific slopes on the KRW/USD exchange rate; product-specific linear time trends; the five fruit treatment paths assigned to the five never-treated fruits (lemon, melon, pear, apple, watermelon); each fruit's own path shifted 730 days earlier; the wholesale price and the retail-to-wholesale price ratio as outcomes. The two placebo variants (the reassigned and the shifted paths) have treatment-status estimates only, since their paths carry no tariff reduction. Checks that the baseline row reproduces the fruit estimates in the four `LPseparate_*_res.csv` files. Reads `m4.dta` and `oil_fx_cpi.dta`. Writes the two files below |
+| `FruitVeg_difference/fruit_alternatives_cells.csv` | The 24 estimates with standard error, p-value, number of onsets, treated products, clusters and N |
+| `FruitVeg_difference/fruit_alternatives_table.tex` | The appendix table "Checks of the Fruit Estimates against Alternative Explanations" |
+| `FruitVeg_difference/policy_exposure.py` | For each clean Quota Tariff onset of the 11 ever-treated products, computes policy exposure s (2021 customs imports on the product's fresh tariff line divided by the sum of mean 2019-2021 production and those imports), the Quota Tariff rate tau of the designation that starts on the onset day t, the tariff reduction cut (mean of max(BaseTax - tau, 0) over [t-365, t]) and the predicted change 100 * s * ln((1 + tau/100) / (1 + (tau + cut)/100)). Reads `m4.dta`, `possible.dta` (fresh tariff line of each product) and the two input files below. Writes `policy_exposure_events.csv` and `policy_exposure_table.tex` |
+| `FruitVeg_difference/quota_tariff_list_2015_2025.xlsx` | Input: the Quota Tariff designations of 2015-2025 by tariff line, with the Quota Tariff rate, start and end dates and the presidential decree |
+| `FruitVeg_difference/policy_exposure_fbs2023.csv` | Input: 22 figures in metric tons from Food Balance Sheet 2023, published by the Korea Rural Economic Institute: 2019-2021 production (table 4.1) of the six ever-treated vegetables and kiwifruit, and 2021 napa cabbage imports (table 4.2) |
+| `FruitVeg_difference/policy_exposure_events.csv` | One row per clean onset (17): product, onset date, tariff line, 2021 imports, 2019-2021 production, s, Quota Tariff rate, tariff reduction and predicted change |
+| `FruitVeg_difference/policy_exposure_table.tex` | The appendix table "Policy Exposure and the Price Change Predicted from Pre-Designation Information" |
+| `FruitVeg_difference/retail_varieties.py` | For the six ever-treated vegetables and the four tropical fruits, lists the varieties surveyed in the retail price series used as the dependent variable (`s_item` in sheet `데이터 병합` of `스크래핑 대상 품목_농넷최종선정.xlsx`), the number of days each variety is observed in `소매가격(KAMIS 조사가격).txt`, and whether any variety is recorded as imported. Writes `retail_varieties_table.tex` |
+| `FruitVeg_difference/retail_varieties_table.tex` | The appendix table "Varieties Measured by the Retail Price Series of the Ever-Treated Vegetables and Tropical Fruits" |
+| `FruitVeg_difference/forgone_revenue.py` | Forgone tariff revenue of the Quota Tariff designations of the 11 ever-treated products, 2021-01 to 2025-03. For each designation of a product's fresh tariff line, takes the customs imports (monthly Korea Agricultural Trade Information (KATI) records, spread evenly over the days of each month) within the designated period, the part up to the quota volume, and the gap between the applied tariff rate (`BaseTax`) and the Quota Tariff rate; converts the result to KRW with the monthly KRW/USD exchange rate. For onion, which has a Market Access Quota, the lower bound caps the applied tariff rate at the 50% in-quota rate of that quota. Assumes that imports would have been the same without the designation. Reads `m4.dta`, `possible.dta`, the two `kati_import_price_*finaluse.xlsx` files, `원달러환율.dta`, `quota_tariff_list_2015_2025.xlsx` and `policy_exposure_events.csv`. Writes the four files below |
+| `FruitVeg_difference/forgone_by_designation.csv` | One row per designation (47): designated period, Quota Tariff rate, quota volume, imports, share within the quota, forgone revenue in USD and KRW (upper and lower bounds) |
+| `FruitVeg_difference/forgone_by_onset.csv` | Forgone revenue of the designations from each of the 17 clean onsets to the end of its treatment spell |
+| `FruitVeg_difference/forgone_by_product.csv` | Forgone revenue by product over the sample |
+| `FruitVeg_difference/forgone_revenue_summary.txt` | The totals cited in the main text: vegetables and fruits, the share of carrot and onion, and onion imports within its designated periods |
+
+`fruit_alternatives.py` sets `OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS` and `MKL_NUM_THREADS` to 4 before importing `numpy`.
+
+## Pre-treatment import dependence
+
+The folder `Import_dependence/` produces the appendix table "Pre-Treatment Import Dependence of Ever-Treated and Never-Treated Products". The two scripts use Python with `pandas` (and `openpyxl` to read the `.xlsx` files) and find their inputs relative to their own folder. Run order: `import_dependence.py`, then `import_dependence_table.py`. `main.do` does not run them.
+
+| File | Role |
+|---|---|
+| `Import_dependence/import_dependence.py` | Computes the import-dependence ratios of the 41 products. The main ratio is imports divided by production plus imports minus exports, each quantity summed over 2019-2021, from tables 4.1 (production) and 4.2 (imports and exports) of Food Balance Sheet 2023, published by the Korea Rural Economic Institute. The same ratio is also computed for 2021 alone and, for mung bean and peanut, with the reassigned cells (see the input files below) taken as printed in the source. The reference ratio divides the 2021 imports on the product's own ten-digit lines of the Harmonized Tariff Schedule of Korea (HSK) by 2021 production plus those imports; the imports are summed from `kati_import_price_finished_finaluse.xlsx` and `kati_import_price_add4_finished_finaluse.xlsx` in the package root as in the summary-statistics block of `main.do`. A blank cell is read as zero only for the imports and exports of sweet potato and the exports of bean, adzuki bean and mung bean, which the annual balance sheets (table 3.11) report as 0.0 thousand metric tons. Reads the three input files below. Writes `import_dependence_balance.csv` |
+| `Import_dependence/import_dependence_table.py` | Reads `import_dependence_balance.csv` and writes `import_dependence_eng.tex`, the appendix table. Block means are taken over the products with a value. The standardized difference between the ever-treated vegetables or fruits and all never-treated products is (mean_T - mean_C) / sqrt((var_T + var_C) / 2) with sample variances and is not reported for a group with one product; the last row gives it for fruits with the tropical fruits set to 100% |
+| `Import_dependence/import_dependence_balance.csv` | One row per product in table order: the main ratio (2019-2021); the main ratio with the reassigned cells taken as printed, where it differs; the 2021 ratio; the reference ratio (2021) with the 2021 imports and production it uses; whether the Food Balance Sheet row used is an aggregate row; and the 2019-2021 totals |
+| `Import_dependence/import_dependence_eng.tex` | The appendix table |
+| `Import_dependence/import_dependence_fbs2023_treated.csv`, `Import_dependence/import_dependence_fbs2023_never_treated.csv` | Input: production (table 4.1) and imports and exports (table 4.2) of Food Balance Sheet 2023 for 2019-2022, in metric tons, for the 11 ever-treated and the 30 never-treated products; only 2019-2021 enter the ratios. A product that has no row in the source has no row in the file. `row_label_ko` and `row_label_en` give the row of the source; a row named after another product is an aggregate row. For mung bean and peanut, the source prints the 2020-2022 imports and exports of each product on the other's line; these 12 cells are assigned to the product whose supply they enter in table 4.3 (`reassigned` = 1), and `printed_value_t` keeps the value printed on the product's own line |
+| `Import_dependence/import_dependence_production2021.csv` | Input: 2021 production of each product in metric tons with its source (publication, table and page), and whether the reference ratio is computed for the product (27 products) |
+
+## Identification robustness
+
+The folder `Identification_robustness/` produces the main-text table "Summary of Identification Robustness Checks", the simultaneous band and the joint-test p-values of the main-text figure "Pre-Onset Coefficients with and without Climate Covariates", and five appendix tables: "Joint Tests of the Pre-Onset Coefficients"; "Treatment-Intensity Estimates without the Ever-Treated Product with the Largest Tariff Reduction"; "Estimates under Longer Washout Periods and with First Onsets Only"; "Persistent-Treatment Estimates with a Fixed Set of Treated Onsets"; and "Fruit Estimates with Import-Dependent Comparison Products". The Python scripts use `pandas`, `numpy` and `scipy`, read `m4.dta` from the package root and find their other inputs relative to their own folder. All LP-DiD regressions except those of `pretrend_tests.py` are estimated through `lpdid_engine.py`, which must stay in the same folder. `figure2_band.do` needs Stata and must be run with `Identification_robustness/` as the working directory. Run order: `engine_gate.py` (optional); then `washout.py`, `fixedset.py`, `intensity_drop.py` and `pretrend_tests.py` in any order, and `importctrl.py` after `Import_dependence/import_dependence.py`; then each table script after the script whose output it reads, and `figure2_band.do` after `pretrend_tests.py`; and `robustness_summary_table.py` last, after `SUTVA_exclusion/sutva_exclusion_lpdid.py` as well. `pretrend_tests.py` takes about 10 to 15 minutes and `fixedset.py` about 5 minutes on a desktop computer; each of the other scripts takes less than 3 minutes. `main.do` does not include these scripts, apart from `pretrend_tests.py` and `figure2_band.do`, which appear in its recipe block for figure 2.
+
+| File | Role |
+|---|---|
+| `Identification_robustness/lpdid_engine.py` | LP-DiD in Python with the specification of the `LPseparate_*.do` files, imported by the scripts below. Untreated spells of 30 days or less between two treated spells count as treated; a clean onset has no treatment in the 120 days before it; the clean controls are products not treated before t and untreated from t through t+h; the outcome is the log price at t+h minus the mean log price over [t-120, t-1]. Standard errors are clustered by product with Stata's small-sample factor, and p-values come from the t distribution with degrees of freedom equal to the number of clusters minus one. Options set the washout length, keep only first onsets or onsets that stay treated for a fixed number of days, and restrict the never-treated comparison products; `prep()` removes products from the sample |
+| `Identification_robustness/engine_gate.py` | Checks that `lpdid_engine.py` reproduces the 12 Stata estimates in `SUTVA_exclusion/table3_reference.csv` (coefficients within 1e-6 standard errors, equal N) and reports the differences in the standard errors. Writes `engine_gate.txt` |
+| `Identification_robustness/washout.py` | Re-estimates the six regressions of each group in the table of estimates at selected horizons with a treated-side washout of 120, 180, 240 and 365 days, and with the first onset of each product only (120-day washout); the 120-day pre-onset baseline and the conditions on the control side do not change. Stops unless the numbers of clean onsets of both groups together are 17, 16, 13, 12 and 11. Writes `washout.csv` |
+| `Identification_robustness/washout_table.py` | Writes `washout_table_eng.tex`, the appendix table "Estimates under Longer Washout Periods and with First Onsets Only", from `washout.csv`. A p-value is shown as n.a. when three or fewer treated products remain. The 365-day sample is not a column; the script checks that it gives the 240-day estimates for vegetables and the first-onset estimates for fruits, as the table note states |
+| `Identification_robustness/fixedset.py` | Re-estimates the persistent-treatment regressions (treatment status and intensity, h = 0, 10, ..., 150) on a fixed set of onsets, those that stay treated on every day of [t, t+150]: five vegetable and four fruit onsets, listed in `event_list_fixed`. The clean controls follow the baseline rule at each h. Each regression is also run with the baseline design, which keeps all clean onsets that remain at h (columns ending in `_baseline`). Writes `fixedset.csv` |
+| `Identification_robustness/fixedset_table.py` | Writes `fixedset_table_eng.tex`, the appendix table "Persistent-Treatment Estimates with a Fixed Set of Treated Onsets" (h = 0, 30, ..., 150), from `fixedset.csv` |
+| `Identification_robustness/intensity_drop.py` | In each group, removes from the sample the ever-treated product with the largest treatment intensity (onion; pineapple) and re-estimates the three treatment-intensity regressions of the table of estimates at selected horizons (persistent treatment at h = 150, impulse response at h = 150 and 250). Writes `intensity_drop.csv`, which also holds the estimates of `SUTVA_exclusion/table3_reference.csv` for comparison |
+| `Identification_robustness/intensity_drop_table.py` | Writes `intensity_drop_eng.tex`, the appendix table "Treatment-Intensity Estimates without the Ever-Treated Product with the Largest Tariff Reduction", from `intensity_drop.csv` |
+| `Identification_robustness/importctrl.py` | Re-estimates the six fruit regressions of the table of estimates at selected horizons with the never-treated comparison products restricted to those whose main import dependence in `Import_dependence/import_dependence_balance.csv` is at least 50 percent (`ge50`) or at least 30 percent (`ge30`), plus lemon, which has no production row in the Food Balance Sheet. The pre-onset observations of the ever-treated fruits stay in the comparison pool. Writes `importctrl.csv`, whose columns ending in `_base` hold the estimates with all never-treated products |
+| `Identification_robustness/importctrl_table.py` | Writes `importctrl_table_eng.tex`, the appendix table "Fruit Estimates with Import-Dependent Comparison Products", from `importctrl.csv` |
+| `Identification_robustness/pretrend_tests.py` | Joint tests of the 120 pre-onset coefficients (h = -120, ..., -1) of four paths: vegetables with the climate covariates and fruits without them, each for treatment status and treatment intensity. The script rebuilds the analysis data of `AshenfelterDip/AD_prep.do` from `m4.dta`, estimates each coefficient as `AshenfelterDip/AD_pre_core2.do` does, and checks the estimates against the Stata results in `AD_pre_V3_g1_res.csv`, `AD_pre_V2_g2_res.csv` and `LPseparate_Gm4_CV1(95)ct_res.csv` (coefficients within 1e-9 standard errors, standard errors within a relative 1e-6 because the Stata files store the 95% bounds in single precision, equal N). From the product scores it builds the covariance of the coefficients across horizons and computes a sup-t simultaneous 95% band (100,000 Gaussian draws with a fixed seed), a test of the slope of a linear trend in h, and a Wald test of equal means over four 30-day windows. The fruit paths are also run on the balanced sample, the rows whose 120 lagged outcomes all exist, which the appendix table uses for the fruit slope test. Writes `pretrend_coefficients.csv`, `pretrend_scores.csv`, `pretrend_tests.csv` and `pretrend_band.csv` |
+| `Identification_robustness/pretrend_table.py` | Writes `PT_table_eng.tex`, the appendix table "Joint Tests of the Pre-Onset Coefficients", from `pretrend_tests.csv` |
+| `Identification_robustness/figure2_band.do` | Draws the main-text figure "Pre-Onset Coefficients with and without Climate Covariates": the coefficients in the `AD_pre_V2p_*` and `AD_pre_V3_*` files, the sup-t band of the vegetable path with the climate covariates from `pretrend_band.csv`, and the three joint-test p-values from `pretrend_tests.csv`. Writes the panels `AD_precoef_veg_eng.png` and `AD_precoef_fruit_eng.png`, and `AD_precoef_merged_eng.png`, the two panels side by side, joined with `Pillow` through Stata's `python` command |
+| `Identification_robustness/AD_pre_V2p_g1_res.csv`, `AD_pre_V2p_g2_res.csv`, `AD_pre_V3_g1_res.csv`, `AD_pre_V3_g2_res.csv`, `AD_pre_V2_g2_res.csv` | Copies of the pre-onset coefficients that `AshenfelterDip/AD_pre_core2.do` writes when run through the `runme2_*.do` file with the same suffix (g1: vegetables; g2: fruits; V3: with the climate covariates, on the rows where all eight climate covariates are observed; V2p: without the climate covariates, on the same rows as V3; V2 with g2: without the climate covariates on all rows, the fruit specification of the paper). `figure2_band.do` plots the first four; `pretrend_tests.py` checks its treatment-status estimates against `AD_pre_V3_g1_res.csv` and `AD_pre_V2_g2_res.csv` |
+| `Identification_robustness/robustness_summary_table.py` | Writes `robustness_summary_eng.tex`, the main-text table "Summary of Identification Robustness Checks": treatment-intensity estimates x 100 with p-values as in `lpdid_engine.py`, for vegetables and fruits under persistent treatment at h = 150 and in the impulse response at h = 250. The rows come from `SUTVA_exclusion/table3_reference.csv`, `washout.csv` (180 and 240 days, first onsets only), `fixedset.csv`, `SUTVA_exclusion/sutva_exclusion_cells.csv` (variant `both`), `importctrl.csv` (`ge50`), `intensity_drop.csv` and `pretrend_tests.csv` (the treatment-intensity paths, with the balanced sample for the fruit slope test). The last column says whether every reported cell has the same sign and the same significance at the 5% level as in the table of estimates at selected horizons |
+| `Identification_robustness/*.csv`, `*_eng.tex`, `*.png`, `engine_gate.txt` | Outputs of the scripts above, included in the package |
+
+The standard errors of the vegetable regressions vary with the number of BLAS threads from the seventh significant digit onward. `lpdid_engine.py` sets the number of threads to 4 unless it is set in the environment, and `engine_gate.py`, `washout.py`, `fixedset.py` and `intensity_drop.py` import it before `numpy`; `importctrl.py` and `pretrend_tests.py` fix the number at 2. The tables are identical with 2 and 4 threads.
