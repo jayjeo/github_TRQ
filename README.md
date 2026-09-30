@@ -26,7 +26,7 @@ Move them to the top folder before running `main.do`.
 | Tool | Version used | Notes |
 |---|---|---|
 | Stata | 19 (StataNow, MP) | community packages: `rangestat`, `boottest` (auto-installed by the do files via `ssc install` when missing); the custom command `check_TRQquota.ado` ships in this folder and is found through the `adopath` line in `main.do`. `AshenfelterDip/AD_stackfig2.do` and `Identification_robustness/figure2_band.do` join the two panels of figures 1 and 2 through Stata's `python` command, so Stata must be linked (`set python_exec`) to a Python installation with `Pillow`; the panels themselves are drawn without Python |
-| Python | 3.11 | `pandas`, `numpy`, `matplotlib`, `Pillow` (tables 1-3 and figures 1-2 of the paper); `scipy` for table 3 (`_tabh_results/generate_tables.py`) and for the AIDS, `SUTVA_exclusion/`, `FruitVeg_difference/` and `Identification_robustness/` scripts, and `openpyxl` for the `.xlsx` inputs of `FruitVeg_difference/` and `Import_dependence/`. The AIDS results were produced with Python 3.11.8, pandas 3.0.3, numpy 2.4.4 and scipy 1.17.0 |
+| Python | 3.11 | `pandas`, `numpy`, `matplotlib`, `Pillow` (tables 1-3 and figures 1-2 of the paper); `scipy` for table 3 (`_tabh_results/generate_tables.py`) and for the AIDS, `SUTVA_exclusion/`, `FruitVeg_difference/` and `Identification_robustness/` scripts, `openpyxl` for the `.xlsx` inputs of `FruitVeg_difference/` and `Import_dependence/`, and `playwright` with its Chromium browser, together with `Pillow`, for figure 7 (`AIDS_map_figure.py`). The AIDS results were produced with Python 3.11.8, pandas 3.0.3, numpy 2.4.4 and scipy 1.17.0 |
 | R | 4.x (optional) | Only needed to re-run the seasonal-adjustment step; its three outputs (`q_all_*_STL_result.csv`) are already included, so `main.do` runs end-to-end without R |
 
 ## What produces what
@@ -40,6 +40,7 @@ Move them to the top folder before running `main.do`.
 | Figure 1 (retail prices around Quota Tariff onsets) | `AshenfelterDip/` pipeline (see the recipe block in `main.do`) |
 | Figure 2 (pre-onset coefficients with and without climate covariates) | `AshenfelterDip/` pipeline for the coefficients, then `Identification_robustness/pretrend_tests.py` and `Identification_robustness/figure2_band.do` for the simultaneous band, the joint-test p-values and the figure |
 | Figures 3-6 (LP-DiD graphs) | the four `LPseparate_*_CV1(95)ct*.do` files (about 12 hours each); their `*_res.csv` files hold the full-horizon estimates referenced in the paper and are included |
+| Figure 7 (compensated cross-price elasticities between the products) | `AIDS_map_figure.py`, from the interactive page `docs/aids-map/index.html` (see "One-step AIDS estimation" below) |
 | Tables S1-S3 (summary statistics) | `main.do` (summary-statistics block; fragments `sumstat_T*_eng.tex`) |
 | Table S4 (pre-treatment import dependence) | `Import_dependence/` (see "Pre-treatment import dependence" below) |
 | Table S5 (pineapple designation detail) | values hard-coded and verified in `main.do` (threshold-check block) |
@@ -63,7 +64,8 @@ Move them to the top folder before running `main.do`.
 - `Import_dependence/`: pre-treatment import dependence of the 41 products
 - `SUTVA_exclusion/`: estimates with candidate substitutes and complements removed from the comparison pool
 - `FruitVeg_difference/`: appendix tables on the difference between the fruit and vegetable estimates, and the forgone tariff revenue
-- `AIDS_*` files, `AIDS_main/`, `AIDS_fgnls2/`: one-step AIDS estimation
+- `AIDS_*` files, `AIDS_main/`, `AIDS_fgnls2/`: one-step AIDS estimation; `AIDS_map_figure.py` writes figure 7 (`aids_map_eng.png`)
+- `docs/aids-map/`: the two interactive pages linked above; figure 7 is drawn from `docs/aids-map/index.html`
 - `create_tariff_table_largefont_eng.py`: renders the table 1 image
 - `WTO_TRQ_gen.do`, `check_TRQquota.ado`, `R_*.R`, raw data files (`*.xlsx`, `*.txt`, `*.csv`, `*.dta`)
 - `Big sized file/`: the two raw files larger than 100MB (see "Large files" above)
@@ -74,7 +76,7 @@ The scripts of the table 3 pipeline read their folders from environment variable
 
 ## One-step AIDS estimation
 
-The almost ideal demand system (AIDS) for 40 products is estimated in Python. The commands are listed in the last block of `main.do`.
+The almost ideal demand system (AIDS) for 40 products is estimated in Python. The commands are listed in the block "How to generate the one-step AIDS elasticities" of `main.do`.
 
 | File | Role |
 |---|---|
@@ -82,12 +84,13 @@ The almost ideal demand system (AIDS) for 40 products is estimated in Python. Th
 | `AIDS_elasticities.py` | Reads the output of the two runs below. Writes `elasticities_long.csv` (raw and adjusted standard errors, Benjamini-Hochberg q-values), `hicks_40x40.csv` and `marshall_40x40.csv` into each folder, and the cells flagged under rules R1-R3 (defined below the table) into `AIDS_main/exclusion_candidates.csv` and `AIDS_main/exclusion_summary.txt` |
 | `AIDS_expected_pairs.py` | Checks the pairs in `AIDS_expected_pairs.csv` against `AIDS_main`, using the Hicksian elasticity of `item_a` with respect to the price of `item_b`: a substitute or complement pair agrees when the elasticity has the expected sign, and a pair classified as neither agrees when the elasticity lies between -0.10 and 0.10. A pair counts as significant when q <= 0.10 (Benjamini-Hochberg over the 1,560 off-diagonal cells, taking the larger q of the pair's two directions). Writes `AIDS_main/expected_pairs_check.csv` and `AIDS_main/expected_pairs_summary.txt` |
 | `AIDS_expected_pairs.csv` | 30 product pairs classified by the authors as substitutes (16), complements (8) or neither (6) |
+| `AIDS_map_figure.py` | Writes `aids_map_eng.png` (figure 7) from the interactive page `docs/aids-map/index.html`, which holds the Hicksian elasticities of `AIDS_main/hicks_40x40.csv` (rounded to five decimals) and the pairs of `AIDS_expected_pairs.csv`. The page is opened in headless Chromium in its default view (Hicksian elasticities, the pairs judged to be substitutes or complements outlined, color range from -0.5 to 0.5), and the heat map is drawn again from the data in the page with the page's colors, group lines and outlines; the labels are larger and a legend is added below the grid. Before saving, the script checks every cell color and every outline (its cell and line style) against the heat map of the page. Needs `playwright`, its Chromium browser, `Pillow` and an internet connection for the page font |
 | `AIDS_main/`, `AIDS_fgnls2/` | Output of the two runs: `AIDS_main/` with the default options (FGNLS iterated to convergence), and `AIDS_fgnls2/` with a looser tolerance and FGNLS stopped after two iterations (`--eps 1e-3 --ifgnlseps 1e30`) |
 | `AIDS_daily_panel_shift.dta` | Input: 1,065 days, 40 budget shares, 40 prices and total expenditure. Ships with the package |
 | `AIDS_build_daily_panel.py` | Optional step that rebuilds the input from `소비트렌드.txt`, `m4.dta` and `AIDS_item_map_40.csv` |
 | `AIDS_item_map_40.csv` | Item order (w01..w40 / p01..p40), ever-treated flag, the three pairs of closely related products (napa cabbage and young napa cabbage, green onion and scallion, radish and young summer radish) and the estimation group of the ever-treated products (1 = vegetables, 2 = fruits) |
 | `AIDS_weekly_panel_shift.csv`, `AIDS_seasonal_factors_shift.csv`, `AIDS_daily_panel_shift.csv`, `AIDS_panel_build_log_shift.txt` | Intermediate files and build log written by `AIDS_build_daily_panel.py` |
-| `AIDS_demandsys.do` | The same model in Stata (`demandsys aids`). Not run by `main.do`; see ALTERNATIVES USING STATA in the last block of `main.do` |
+| `AIDS_demandsys.do` | The same model in Stata (`demandsys aids`). Not run by `main.do`; see ALTERNATIVES USING STATA in the same block of `main.do` |
 
 Standard errors: the daily panel interpolates 153 weekly observations to 1,065 days, so the adjusted standard error is the raw one times sqrt(1065/153). In `exclusion_candidates.csv` the q-values are Benjamini-Hochberg adjusted separately over the 319 cells that pair a never-treated product with an ever-treated product and over the 50 cells that pair two ever-treated products of the same group; because vegetables and fruits are estimated in separate LP-DiD regressions, the 60 cells that pair an ever-treated vegetable with an ever-treated fruit are not used. The flags are defined as follows, where e is the elasticity of the cell. R1: q <= 0.10. R2: R1 and |e| >= 0.10. R3: R1, and the `AIDS_fgnls2` run also gives q <= 0.10 with the same sign.
 
