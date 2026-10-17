@@ -5,7 +5,7 @@
 - Korea Customs and Trade Development Institute
 - [Korean-language version, Unpublished Institutional Working Paper, Not peer-reviewed](https://jayjeo.github.io/할당관세_정책이_농산물_가격에_미치는_인과적_영향_preprint.pdf)
 
-All code and data needed to reproduce every table and figure in the paper are available at [this link](https://kctdi-econ.synology.me:5001/d/s/1A3IzYxSSBKdUsfpjei9vaI7q2PtOWGu/LfwRaiIo-6d1RlepJHcvb8FrrtytByOH-j74AnPFKiQ0). Following the instructions in **`main.do`** and the run orders given below for the scripts in `SUTVA_exclusion/`, `FruitVeg_difference/`, `Import_dependence/` and `Identification_robustness/` is sufficient to generate all tables and figures, as well as the CSV files referenced in the paper. Most of the work in `main.do` is carried out in Stata; a few steps rely on Python or R, and instructions for those steps are provided as comments within `main.do`.
+All code and data needed to reproduce every table and figure in the paper are available at [this link](https://kctdi-econ.quickconnect.to/d/s/1A3IzYxSSBKdUsfpjei9vaI7q2PtOWGu/LfwRaiIo-6d1RlepJHcvb8FrrtytByOH-j74AnPFKiQ0). Following the instructions in **`main.do`** and the run orders given below for the scripts in `SUTVA_exclusion/`, `FruitVeg_difference/`, `Import_dependence/` and `Identification_robustness/` is sufficient to generate all tables and figures, as well as the CSV files referenced in the paper. Most of the work in `main.do` is carried out in Stata; a few steps rely on Python or R, and instructions for those steps are provided as comments within `main.do`.
 
 Two interactive pages show the cross-price elasticities estimated with the almost ideal demand system (AIDS):
 - [Substitutes and Complements among 40 Products](https://jayjeo.github.io/github_TRQ/aids-map/)
